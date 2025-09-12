@@ -44,11 +44,6 @@
         <module>billing-service</module>      <!-- Processamento de Pagamentos -->
         <module>inventory-service</module>    <!-- Controle de Estoque -->
         <module>bff</module>
-        <module>shared-kernel</module>
-        <module>order-service</module>
-        <module>billing-service</module>
-        <module>inventory-service</module>
-        <module>bff</module>                  <!-- Backend for Frontend -->
     </modules>
 
     <!-- Propriedades Globais -->
@@ -174,6 +169,16 @@
 
     <!-- Build Configuration -->
     <build>
+        <pluginManagement>
+            <plugins>
+                <!-- Spring Boot Maven Plugin - apenas para microserviços executáveis -->
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
         <plugins>
             <!-- Maven Compiler Plugin - Java 21 -->
             <plugin>
@@ -197,12 +202,6 @@
                 <configuration>
                     <argLine>--enable-preview</argLine>
                 </configuration>
-            </plugin>
-
-            <!-- Spring Boot Maven Plugin -->
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

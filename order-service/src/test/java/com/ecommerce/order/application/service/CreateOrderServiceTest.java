@@ -5,6 +5,8 @@ import com.ecommerce.order.application.port.in.CreateOrderItemCommand;
 import com.ecommerce.order.application.port.out.OrderEventPublisherPort;
 import com.ecommerce.order.application.port.out.OrderRepositoryPort;
 import com.ecommerce.order.domain.model.Order;
+import com.ecommerce.order.domain.model.OrderStatus;
+import com.ecommerce.shared.domain.valueobject.Money;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -12,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,23 +40,32 @@ class CreateOrderServiceTest {
         // Given
         UUID customerId = UUID.randomUUID();
         UUID productId = UUID.randomUUID();
-        
+
         var itemCommand = new CreateOrderItemCommand(
-            productId,
-            "Test Product",
-            2,
-            new BigDecimal("50.00"),
-            "USD"
+                productId,
+                "Test Product",
+                2,
+                new BigDecimal("50.00"),
+                "USD"
         );
-        
+
         var command = new CreateOrderCommand(customerId, List.of(itemCommand));
-        
+
+        // Mock Money (totalAmount)
+        var totalAmount = mock(Money.class);
+        when(totalAmount.amount()).thenReturn(new BigDecimal("100.00"));
+        when(totalAmount.getCurrencyCode()).thenReturn("USD");
+
         // Mock order after save (with generated ID)
         var savedOrder = mock(Order.class);
-        when(savedOrder.getId()).thenReturn(UUID.randomUUID());
+        var orderId = UUID.randomUUID();
+        when(savedOrder.getId()).thenReturn(orderId);
         when(savedOrder.getOrderNumber()).thenReturn("ORD-123456");
         when(savedOrder.getCustomerId()).thenReturn(customerId);
-        
+        when(savedOrder.getTotalAmount()).thenReturn(totalAmount);
+        when(savedOrder.getStatus()).thenReturn(OrderStatus.PENDING);
+        when(savedOrder.getOrderDate()).thenReturn(LocalDateTime.now());
+
         when(orderRepository.existsByOrderNumber(anyString())).thenReturn(false);
         when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
 
@@ -64,7 +76,7 @@ class CreateOrderServiceTest {
         assertTrue(result.isSuccess());
         assertNotNull(result.getValue());
         assertEquals(customerId, result.getValue().customerId());
-        
+
         verify(orderRepository).save(any(Order.class));
         verify(eventPublisher).publishOrderCreated(any());
     }
@@ -74,15 +86,15 @@ class CreateOrderServiceTest {
         // Given
         UUID customerId = UUID.randomUUID();
         var itemCommand = new CreateOrderItemCommand(
-            UUID.randomUUID(),
-            "Test Product",
-            1,
-            new BigDecimal("25.00"),
-            "USD"
+                UUID.randomUUID(),
+                "Test Product",
+                1,
+                new BigDecimal("25.00"),
+                "USD"
         );
-        
+
         var command = new CreateOrderCommand(customerId, List.of(itemCommand));
-        
+
         when(orderRepository.existsByOrderNumber(anyString())).thenReturn(true);
 
         // When
@@ -91,7 +103,7 @@ class CreateOrderServiceTest {
         // Then
         assertTrue(result.isFailure());
         assertEquals("ORDER_NUMBER_EXISTS", result.getErrorCode());
-        
+
         verify(orderRepository, never()).save(any(Order.class));
         verify(eventPublisher, never()).publishOrderCreated(any());
     }

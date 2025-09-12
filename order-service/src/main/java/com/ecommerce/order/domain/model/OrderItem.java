@@ -4,6 +4,7 @@ import com.ecommerce.shared.domain.entity.BaseEntity;
 import com.ecommerce.shared.domain.valueobject.Money;
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
@@ -23,12 +24,11 @@ public class OrderItem extends BaseEntity {
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
-    @AttributeOverrides({
-        @AttributeOverride(name = "amount", column = @Column(name = "unit_price")),
-        @AttributeOverride(name = "currency.currencyCode", column = @Column(name = "currency"))
-    })
-    @Embedded
-    private Money unitPrice;
+    @Column(name = "unit_price", precision = 19, scale = 2)
+    private BigDecimal unitPrice;
+
+    @Column(name = "currency", length = 3)
+    private String currency;
 
     protected OrderItem() {
         // JPA Constructor
@@ -38,11 +38,11 @@ public class OrderItem extends BaseEntity {
         this.productId = productId;
         this.productName = productName;
         this.quantity = quantity;
-        this.unitPrice = unitPrice;
+        setUnitPrice(unitPrice);
     }
 
     public Money getSubtotal() {
-        return unitPrice.multiply(java.math.BigDecimal.valueOf(quantity));
+        return getUnitPrice().multiply(java.math.BigDecimal.valueOf(quantity));
     }
 
     // Getters and Setters
@@ -67,6 +67,11 @@ public class OrderItem extends BaseEntity {
     }
 
     public Money getUnitPrice() {
-        return unitPrice;
+        return Money.of(unitPrice, currency);
+    }
+
+    private void setUnitPrice(Money money) {
+        this.unitPrice = money.amount();
+        this.currency = money.getCurrencyCode();
     }
 }

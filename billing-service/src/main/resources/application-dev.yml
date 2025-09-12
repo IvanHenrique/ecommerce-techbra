@@ -5,15 +5,6 @@ spring:
     password: ecommerce_pass
     driver-class-name: org.postgresql.Driver
 
-  jpa:
-    hibernate:
-      ddl-auto: create-drop  # Para desenvolvimento
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        show_sql: true
-
   data:
     redis:
       host: localhost
@@ -31,11 +22,19 @@ spring:
       time-to-live: 300000 # 5 minutos
       cache-null-values: false
 
-# Configurações do Resilience4j
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+
 resilience4j:
   circuitbreaker:
     instances:
-      order-service:
+      billing-service:
         register-health-indicator: true
         sliding-window-size: 10
         minimum-number-of-calls: 5
@@ -44,31 +43,24 @@ resilience4j:
         wait-duration-in-open-state: 5s
         failure-rate-threshold: 50
         event-consumer-buffer-size: 10
-        record-exceptions:
-          - org.springframework.web.client.HttpServerErrorException
-          - java.util.concurrent.TimeoutException
-          - java.io.IOException
 
   retry:
     instances:
-      order-service:
+      billing-service:
         max-attempts: 3
         wait-duration: 1s
         enable-exponential-backoff: true
         exponential-backoff-multiplier: 2
-        retry-exceptions:
-          - org.springframework.web.client.ResourceAccessException
-          - java.util.concurrent.TimeoutException
 
   timelimiter:
     instances:
-      order-service:
+      billing-service:
         timeout-duration: 3s
         cancel-running-future: true
 
 logging:
   level:
-    com.ecommerce.order: DEBUG
+    com.ecommerce.billing: DEBUG
     org.springframework.kafka: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"

@@ -1,6 +1,5 @@
 # Docker Compose para Ambiente de Desenvolvimento - E-commerce Techbra
 # Provisiona toda infraestrutura necessária para o projeto de microserviços
-version: '3.8'
 
 services:
   # ================================

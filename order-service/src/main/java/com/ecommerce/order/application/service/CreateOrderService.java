@@ -26,8 +26,8 @@ public class CreateOrderService implements CreateOrderUseCase {
     private final OrderRepositoryPort orderRepository;
     private final OrderEventPublisherPort eventPublisher;
 
-    public CreateOrderService(OrderRepositoryPort orderRepository, 
-                             OrderEventPublisherPort eventPublisher) {
+    public CreateOrderService(OrderRepositoryPort orderRepository,
+                              OrderEventPublisherPort eventPublisher) {
         this.orderRepository = orderRepository;
         this.eventPublisher = eventPublisher;
     }
@@ -40,7 +40,7 @@ public class CreateOrderService implements CreateOrderUseCase {
 
             // Generate unique order number
             String orderNumber = generateOrderNumber();
-            
+
             // Validate order number uniqueness
             if (orderRepository.existsByOrderNumber(orderNumber)) {
                 return Result.failure("ORDER_NUMBER_EXISTS", "Order number already exists");
@@ -53,10 +53,10 @@ public class CreateOrderService implements CreateOrderUseCase {
             for (var itemCommand : command.items()) {
                 var unitPrice = Money.of(itemCommand.unitPrice(), itemCommand.currency());
                 var orderItem = new OrderItem(
-                    itemCommand.productId(),
-                    itemCommand.productName(),
-                    itemCommand.quantity(),
-                    unitPrice
+                        itemCommand.productId(),
+                        itemCommand.productName(),
+                        itemCommand.quantity(),
+                        unitPrice
                 );
                 order.addItem(orderItem);
             }
@@ -67,25 +67,25 @@ public class CreateOrderService implements CreateOrderUseCase {
 
             // Publish domain event
             var event = OrderCreatedEvent.create(
-                savedOrder.getId(),
-                savedOrder.getOrderNumber(),
-                savedOrder.getCustomerId(),
-                savedOrder.getTotalAmount().getAmount(),
-                savedOrder.getTotalAmount().getCurrencyCode()
+                    savedOrder.getId(),
+                    savedOrder.getOrderNumber(),
+                    savedOrder.getCustomerId(),
+                    savedOrder.getTotalAmount().amount(),
+                    savedOrder.getTotalAmount().getCurrencyCode()
             );
-            
+
             eventPublisher.publishOrderCreated(event);
             logger.info("OrderCreated event published for order: {}", savedOrder.getOrderNumber());
 
             // Create response
             var response = new CreateOrderResponse(
-                savedOrder.getId(),
-                savedOrder.getOrderNumber(),
-                savedOrder.getCustomerId(),
-                savedOrder.getTotalAmount().getAmount(),
-                savedOrder.getTotalAmount().getCurrencyCode(),
-                savedOrder.getStatus().name(),
-                savedOrder.getOrderDate()
+                    savedOrder.getId(),
+                    savedOrder.getOrderNumber(),
+                    savedOrder.getCustomerId(),
+                    savedOrder.getTotalAmount().amount(),
+                    savedOrder.getTotalAmount().getCurrencyCode(),
+                    savedOrder.getStatus().name(),
+                    savedOrder.getOrderDate()
             );
 
             return Result.success(response);

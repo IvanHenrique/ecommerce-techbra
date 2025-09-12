@@ -59,6 +59,10 @@ public record Money(
         return amount.compareTo(BigDecimal.ZERO) == 0;
     }
 
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
     public String getCurrencyCode() {
         return currency.getCurrencyCode();
     }

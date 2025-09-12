@@ -4,6 +4,7 @@ import com.ecommerce.shared.domain.entity.BaseEntity;
 import com.ecommerce.shared.domain.valueobject.Money;
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,12 +25,11 @@ public class Order extends BaseEntity {
     @Column(name = "status", nullable = false)
     private OrderStatus status;
 
-    @AttributeOverrides({
-        @AttributeOverride(name = "amount", column = @Column(name = "total_amount")),
-        @AttributeOverride(name = "currency.currencyCode", column = @Column(name = "currency"))
-    })
-    @Embedded
-    private Money totalAmount;
+    @Column(name = "total_amount", precision = 19, scale = 2)
+    private BigDecimal totalAmount;
+
+    @Column(name = "currency", length = 3)
+    private String currency;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
@@ -44,7 +44,7 @@ public class Order extends BaseEntity {
     public Order(String orderNumber, UUID customerId, Money totalAmount) {
         this.orderNumber = orderNumber;
         this.customerId = customerId;
-        this.totalAmount = totalAmount;
+        setTotalAmount(totalAmount);
         this.status = OrderStatus.PENDING;
         this.orderDate = LocalDateTime.now();
     }
@@ -87,7 +87,7 @@ public class Order extends BaseEntity {
         var total = items.stream()
                 .map(OrderItem::getSubtotal)
                 .reduce(Money.zero("USD"), Money::add);
-        this.totalAmount = total;
+        setTotalAmount(total);
     }
 
     // Getters
@@ -104,7 +104,12 @@ public class Order extends BaseEntity {
     }
 
     public Money getTotalAmount() {
-        return totalAmount;
+        return Money.of(totalAmount, currency);
+    }
+
+    private void setTotalAmount(Money money) {
+        this.totalAmount = money.amount();
+        this.currency = money.getCurrencyCode();
     }
 
     public List<OrderItem> getItems() {
