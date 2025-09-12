@@ -1,0 +1,136 @@
+# Configuração Prometheus - Projeto E-commerce Techbra
+# Coleta métricas de todos os microserviços e infraestrutura
+
+global:
+  scrape_interval: 15s      # Coleta métricas a cada 15 segundos
+  evaluation_interval: 15s  # Avalia regras a cada 15 segundos
+  external_labels:
+    cluster: 'techbra-local'
+    environment: 'development'
+
+# Configuração de regras (alerting rules)
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
+
+# Configuração de targets para coleta de métricas
+scrape_configs:
+
+  # ================================
+  # INFRASTRUCTURE MONITORING
+  # ================================
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # ================================
+  # MICROSERVICES MONITORING
+  # ================================
+
+  # Order Service
+  - job_name: 'order-service'
+    static_configs:
+      - targets: ['host.docker.internal:8081']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    honor_labels: true
+
+  # Billing Service
+  - job_name: 'billing-service'
+    static_configs:
+      - targets: ['host.docker.internal:8082']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    honor_labels: true
+
+  # Inventory Service
+  - job_name: 'inventory-service'
+    static_configs:
+      - targets: ['host.docker.internal:8083']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    honor_labels: true
+
+  # BFF Service
+  - job_name: 'bff'
+    static_configs:
+      - targets: ['host.docker.internal:8084']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    honor_labels: true
+
+  # ================================
+  # DATABASE MONITORING
+  # ================================
+
+  # PostgreSQL Exporter (se configurado)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # ================================
+  # CACHE MONITORING
+  # ================================
+
+  # Redis Exporter (se configurado)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # ================================
+  # MESSAGE BROKER MONITORING
+  # ================================
+
+  # Kafka JMX Exporter (se configurado)
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka-jmx-exporter:9308']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Kafka Lag Exporter (se configurado)
+  - job_name: 'kafka-lag'
+    static_configs:
+      - targets: ['kafka-lag-exporter:9999']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # ================================
+  # SYSTEM MONITORING
+  # ================================
+
+  # Node Exporter (se configurado para monitorar host)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # cAdvisor (se configurado para containers)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+# ================================
+# ALERTING CONFIGURATION
+# ================================
+
+# Configuração do Alertmanager (se configurado)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
