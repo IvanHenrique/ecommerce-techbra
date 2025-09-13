@@ -1,4 +1,4 @@
-package com.ecommerce;
+package com.ecommerce.inventory;
 
 /**
  * Hello world!
