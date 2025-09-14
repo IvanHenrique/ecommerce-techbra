@@ -4,7 +4,6 @@ import com.ecommerce.bff.application.port.out.OrderServicePort;
 import com.ecommerce.bff.infrastructure.external.dto.OrderDto;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
-import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,7 +34,6 @@ public class OrderServiceAdapter implements OrderServicePort {
     @Override
     @CircuitBreaker(name = "order-service", fallbackMethod = "getOrdersByCustomerIdFallback")
     @Retry(name = "order-service")
-//    @TimeLimiter(name = "order-service")
     public List<OrderDto> getOrdersByCustomerId(UUID customerId) {
         logger.debug("Fetching orders for customer: {} from {}", customerId, orderServiceBaseUrl);
         
@@ -55,7 +53,6 @@ public class OrderServiceAdapter implements OrderServicePort {
     @Override
     @CircuitBreaker(name = "order-service", fallbackMethod = "getOrderByIdFallback")
     @Retry(name = "order-service")
-//    @TimeLimiter(name = "order-service")
     public Optional<OrderDto> getOrderById(UUID orderId) {
         logger.debug("Fetching order: {} from {}", orderId, orderServiceBaseUrl);
         

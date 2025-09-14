@@ -4,7 +4,6 @@ import com.ecommerce.bff.application.port.out.InventoryServicePort;
 import com.ecommerce.bff.infrastructure.external.dto.InventoryReservationDto;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
-import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,7 +33,6 @@ public class InventoryServiceAdapter implements InventoryServicePort {
     @Override
     @CircuitBreaker(name = "inventory-service", fallbackMethod = "getReservationsByOrderIdFallback")
     @Retry(name = "inventory-service")
-//    @TimeLimiter(name = "inventory-service")
     public List<InventoryReservationDto> getReservationsByOrderId(UUID orderId) {
         logger.debug("Fetching reservations for order: {} from {}", orderId, inventoryServiceBaseUrl);
         
