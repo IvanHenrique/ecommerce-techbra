@@ -1,7 +1,6 @@
 package com.ecommerce.order.adapter.in.web;
 
-import com.ecommerce.order.application.port.in.CreateOrderCommand;
-import com.ecommerce.order.application.port.in.CreateOrderUseCase;
+import com.ecommerce.order.application.port.in.*;
 import com.ecommerce.shared.infrastructure.exception.BusinessException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -12,10 +11,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -25,9 +24,15 @@ public class OrderController {
     private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
 
     private final CreateOrderUseCase createOrderUseCase;
+    private final GetOrdersByCustomerUseCase getOrdersByCustomerUseCase;
+    private final GetOrderByIdUseCase getOrderByIdUseCase;
 
-    public OrderController(CreateOrderUseCase createOrderUseCase) {
+    public OrderController(CreateOrderUseCase createOrderUseCase,
+                           GetOrdersByCustomerUseCase getOrdersByCustomerUseCase,
+                           GetOrderByIdUseCase getOrderByIdUseCase) {
         this.createOrderUseCase = createOrderUseCase;
+        this.getOrdersByCustomerUseCase = getOrdersByCustomerUseCase;
+        this.getOrderByIdUseCase = getOrderByIdUseCase;
     }
 
     @PostMapping
@@ -52,4 +57,54 @@ public class OrderController {
             throw new BusinessException(result.getErrorCode(), result.getErrorMessage());
         }
     }
+
+    @GetMapping("/customers/{customerId}/orders")
+    @Operation(summary = "Get orders by customer", description = "Retrieves all orders for a specific customer")
+    public ResponseEntity<List<OrderResponseDto>> getOrdersByCustomer(@PathVariable UUID customerId) {
+        logger.info("Received request to get orders for customer: {}", customerId);
+
+        var query = new GetOrdersByCustomerQuery(customerId);
+        var orders = getOrdersByCustomerUseCase.execute(query);
+
+        var response = orders.stream()
+                .map(order -> new OrderResponseDto(
+                        order.orderId(),
+                        order.orderNumber(),
+                        order.customerId(),
+                        order.totalAmount(),
+                        order.currency(),
+                        order.status(),
+                        order.orderDate()
+                ))
+                .toList();
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{orderId}")
+    @Operation(summary = "Get order by ID", description = "Retrieves a specific order by its ID")
+    public ResponseEntity<OrderResponseDto> getOrderById(@PathVariable UUID orderId) {
+        logger.info("Received request to get order: {}", orderId);
+
+        var query = new GetOrderByIdQuery(orderId);
+        var orderOpt = getOrderByIdUseCase.execute(query);
+
+        if (orderOpt.isEmpty()) {
+            throw new BusinessException("ORDER_NOT_FOUND", "Order not found: " + orderId);
+        }
+
+        var order = orderOpt.get();
+        var response = new OrderResponseDto(
+                order.orderId(),
+                order.orderNumber(),
+                order.customerId(),
+                order.totalAmount(),
+                order.currency(),
+                order.status(),
+                order.orderDate()
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
 }

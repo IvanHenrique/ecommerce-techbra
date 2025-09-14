@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: bff
+
+  profiles:
+    active: dev
+
+server:
+  port: 8084
+
+# WebClient Configuration
+webclient:
+  connection-timeout: 5000
+  read-timeout: 10000
+  write-timeout: 10000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,circuitbreakers,retries
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
+    ratelimiters:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html

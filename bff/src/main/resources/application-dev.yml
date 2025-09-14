@@ -1,0 +1,105 @@
+# URLs dos microserviços - Desenvolvimento
+spring:
+  cache:
+    cache-names: customer-orders
+    caffeine:
+      spec: expireAfterWrite=60s
+
+microservices:
+  order-service:
+    base-url: http://localhost:8081
+  billing-service:
+    base-url: http://localhost:8082
+  inventory-service:
+    base-url: http://localhost:8083
+
+# Configurações do WebClient
+webclient:
+  connection-timeout: 5000
+  read-timeout: 10000
+  write-timeout: 10000
+
+# Configurações do Resilience4j
+resilience4j:
+  circuitbreaker:
+    instances:
+      order-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 30s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+        record-exceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.util.concurrent.TimeoutException
+          - java.io.IOException
+      billing-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 30s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+        record-exceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.util.concurrent.TimeoutException
+          - java.io.IOException
+      inventory-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 30s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+
+  retry:
+    instances:
+      order-service:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.web.client.ResourceAccessException
+          - java.util.concurrent.TimeoutException
+      billing-service:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.web.client.ResourceAccessException
+          - java.util.concurrent.TimeoutException
+      inventory-service:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+
+  timelimiter:
+    instances:
+      order-service:
+        timeout-duration: 3s
+        cancel-running-future: true
+      billing-service:
+        timeout-duration: 3s
+        cancel-running-future: true
+      inventory-service:
+        timeout-duration: 3s
+        cancel-running-future: true
+
+# Configurações de logging
+logging:
+  level:
+    com.ecommerce.bff: DEBUG
+    org.springframework.web.reactive: DEBUG
+    io.github.resilience4j: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
