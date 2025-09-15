@@ -1,5 +1,6 @@
 package com.ecommerce.bff.infrastructure.config;
 
+import io.micrometer.observation.ObservationRegistry;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
@@ -16,28 +17,29 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 public class WebClientConfig {
 
-    @Value("${webclient.connection-timeout:5000}")
+    @Value("${webclient.connection-timeout:10000}")
     private int connectionTimeout;
 
-    @Value("${webclient.read-timeout:10000}")
+    @Value("${webclient.read-timeout:30000}")
     private int readTimeout;
 
-    @Value("${webclient.write-timeout:10000}")
+    @Value("${webclient.write-timeout:30000}")
     private int writeTimeout;
 
     @Bean
-    public WebClient webClient() {
+    public WebClient webClient(ObservationRegistry observationRegistry) {
         HttpClient httpClient = HttpClient.create()
-            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectionTimeout)
-            .responseTimeout(Duration.ofMillis(readTimeout))
-            .doOnConnected(conn ->
-                conn.addHandlerLast(new ReadTimeoutHandler(readTimeout, TimeUnit.MILLISECONDS))
-                    .addHandlerLast(new WriteTimeoutHandler(writeTimeout, TimeUnit.MILLISECONDS))
-            );
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectionTimeout)
+                .responseTimeout(Duration.ofMillis(readTimeout))
+                .doOnConnected(conn ->
+                        conn.addHandlerLast(new ReadTimeoutHandler(readTimeout, TimeUnit.MILLISECONDS))
+                                .addHandlerLast(new WriteTimeoutHandler(writeTimeout, TimeUnit.MILLISECONDS))
+                );
 
         return WebClient.builder()
-            .clientConnector(new ReactorClientHttpConnector(httpClient))
-            .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1024)) // 1MB
-            .build();
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1024))
+                .observationRegistry(observationRegistry) // Para propagação automática de traces
+                .build();
     }
 }

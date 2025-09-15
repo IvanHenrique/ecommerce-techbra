@@ -1,5 +1,6 @@
 package com.ecommerce.bff.infrastructure.external;
 
+import com.ecommerce.bff.application.port.in.CreateOrderCommand;
 import com.ecommerce.bff.application.port.out.OrderServicePort;
 import com.ecommerce.bff.infrastructure.external.dto.OrderDto;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -12,10 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.Duration;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Component
 public class OrderServiceAdapter implements OrderServicePort {
@@ -71,6 +69,42 @@ public class OrderServiceAdapter implements OrderServicePort {
         }
     }
 
+    @Override
+    @CircuitBreaker(name = "order-service", fallbackMethod = "createOrderFallback")
+    @Retry(name = "order-service")
+    public Optional<OrderDto> createOrder(CreateOrderCommand command) {
+        logger.debug("Creating order via order service: {}", orderServiceBaseUrl);
+
+        try {
+            var requestBody = Map.of(
+                    "customerId", command.customerId(),
+                    "items", command.items().stream()
+                            .map(item -> Map.of(
+                                    "productId", item.productId(),
+                                    "productName", item.productName(),
+                                    "quantity", item.quantity(),
+                                    "unitPrice", item.unitPrice(),
+                                    "currency", item.currency()
+                            ))
+                            .toList()
+            );
+
+            var order = webClient.post()
+                    .uri(orderServiceBaseUrl + "/api/v1/orders")
+                    .header("Content-Type", "application/json")
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(OrderDto.class)
+                    .timeout(Duration.ofSeconds(60))
+                    .block();
+
+            return Optional.ofNullable(order);
+        } catch (Exception ex) {
+            logger.error("Error creating order", ex);
+            return Optional.empty();
+        }
+    }
+
     // Fallback methods
     public List<OrderDto> getOrdersByCustomerIdFallback(UUID customerId, Exception ex) {
         logger.warn("Using fallback for getOrdersByCustomerId. Customer: {}", customerId);
@@ -79,6 +113,11 @@ public class OrderServiceAdapter implements OrderServicePort {
 
     public Optional<OrderDto> getOrderByIdFallback(UUID orderId, Exception ex) {
         logger.warn("Using fallback for getOrderById. Order: {}", orderId);
+        return Optional.empty();
+    }
+
+    public Optional<OrderDto> createOrderFallback(CreateOrderCommand command, Exception ex) {
+        logger.warn("Using fallback for createOrder");
         return Optional.empty();
     }
 }

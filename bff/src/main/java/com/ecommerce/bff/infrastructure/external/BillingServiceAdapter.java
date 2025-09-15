@@ -42,7 +42,7 @@ public class BillingServiceAdapter implements BillingServicePort {
                 .uri(billingServiceBaseUrl + "/api/v1/payments/order/{orderId}", orderId)
                 .retrieve()
                 .bodyToMono(PaymentDto.class)
-                .timeout(Duration.ofSeconds(5))
+                .timeout(Duration.ofSeconds(30))
                 .block();
                 
             return Optional.ofNullable(payment);
@@ -63,7 +63,7 @@ public class BillingServiceAdapter implements BillingServicePort {
                 .uri(billingServiceBaseUrl + "/api/v1/customers/{customerId}/payments", customerId)
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<PaymentDto>>() {})
-                .timeout(Duration.ofSeconds(5))
+                .timeout(Duration.ofSeconds(30))
                 .block();
         } catch (Exception ex) {
             logger.error("Error fetching payments for customer: {}", customerId, ex);

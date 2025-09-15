@@ -4,6 +4,7 @@ import com.ecommerce.order.application.port.out.OrderEventPublisherPort;
 import com.ecommerce.order.domain.event.OrderCreatedEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.observation.ObservationRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -20,11 +21,17 @@ public class OrderEventPublisherAdapter implements OrderEventPublisherPort {
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
+    private final ObservationRegistry observationRegistry;
 
     public OrderEventPublisherAdapter(KafkaTemplate<String, String> kafkaTemplate,
-                                     ObjectMapper objectMapper) {
+                                      ObjectMapper objectMapper,
+                                      ObservationRegistry observationRegistry) {
         this.kafkaTemplate = kafkaTemplate;
         this.objectMapper = objectMapper;
+        this.observationRegistry = observationRegistry;
+
+        // Configurar observação no KafkaTemplate
+        this.kafkaTemplate.setObservationEnabled(true);
     }
 
     @Override

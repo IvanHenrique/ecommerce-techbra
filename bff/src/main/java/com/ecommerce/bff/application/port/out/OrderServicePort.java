@@ -1,5 +1,6 @@
 package com.ecommerce.bff.application.port.out;
 
+import com.ecommerce.bff.application.port.in.CreateOrderCommand;
 import com.ecommerce.bff.infrastructure.external.dto.OrderDto;
 
 import java.util.List;
@@ -11,4 +12,6 @@ public interface OrderServicePort {
     List<OrderDto> getOrdersByCustomerId(UUID customerId);
     
     Optional<OrderDto> getOrderById(UUID orderId);
+
+    Optional<OrderDto> createOrder(CreateOrderCommand command);
 }

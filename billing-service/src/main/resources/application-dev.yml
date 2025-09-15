@@ -31,6 +31,16 @@ spring:
         format_sql: true
         show_sql: true
 
+  kafka:
+    producer:
+      properties:
+        # Habilitar métricas do Kafka
+        enable.idempotence: true
+    consumer:
+      properties:
+        # Habilitar métricas do Kafka
+        enable.auto.commit: false
+
 resilience4j:
   circuitbreaker:
     instances:
@@ -62,5 +72,28 @@ logging:
   level:
     com.ecommerce.billing: DEBUG
     org.springframework.kafka: DEBUG
+    zipkin2: DEBUG
+    io.micrometer.tracing: DEBUG
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%X{traceId:-},%X{spanId:-}] - %msg%n"
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+
+# Distributed Tracing
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+  observations:
+    key-values:
+      application: ${spring.application.name}
+  metrics:
+    distribution:
+      percentiles-histogram:
+        kafka: true
+      percentiles:
+        kafka: 0.5,0.95,0.99
+      slo:
+        kafka: 100ms,200ms,500ms

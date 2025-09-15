@@ -1,21 +1,17 @@
 package com.ecommerce.bff.adapter.in.web;
 
-import com.ecommerce.bff.application.port.in.GetCustomerOrdersQuery;
-import com.ecommerce.bff.application.port.in.GetCustomerOrdersUseCase;
-import com.ecommerce.bff.application.port.in.GetOrderDetailsQuery;
-import com.ecommerce.bff.application.port.in.GetOrderDetailsUseCase;
+import com.ecommerce.bff.application.port.in.*;
 import com.ecommerce.shared.infrastructure.exception.BusinessException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
@@ -28,11 +24,14 @@ public class CustomerOrderController {
 
     private final GetCustomerOrdersUseCase getCustomerOrdersUseCase;
     private final GetOrderDetailsUseCase getOrderDetailsUseCase;
+    private final CreateOrderUseCase createOrderUseCase;
 
     public CustomerOrderController(GetCustomerOrdersUseCase getCustomerOrdersUseCase,
-                                   GetOrderDetailsUseCase getOrderDetailsUseCase) {
+                                   GetOrderDetailsUseCase getOrderDetailsUseCase,
+                                   CreateOrderUseCase createOrderUseCase) {
         this.getCustomerOrdersUseCase = getCustomerOrdersUseCase;
         this.getOrderDetailsUseCase = getOrderDetailsUseCase;
+        this.createOrderUseCase = createOrderUseCase;
     }
 
     @GetMapping("/customers/{customerId}/orders")
@@ -87,4 +86,28 @@ public class CustomerOrderController {
             throw new BusinessException("ORDER_DETAILS_FETCH_FAILED", "Failed to retrieve order details");
         }
     }
+
+    @PostMapping("/orders")
+    @Operation(summary = "Create order via BFF", description = "Creates a new order through the BFF")
+    public ResponseEntity<?> createOrder(@Valid @RequestBody CreateOrderRequest request) {
+        logger.info("Received request to create order via BFF for customer: {}", request.customerId());
+
+        try {
+            var command = new CreateOrderCommand(request.customerId(), request.items());
+            var result = createOrderUseCase.execute(command);
+
+            if (result.isSuccess()) {
+                return ResponseEntity.status(HttpStatus.CREATED).body(result.getValue());
+            } else {
+                throw new BusinessException(result.getErrorCode(), result.getErrorMessage());
+            }
+
+        } catch (BusinessException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            logger.error("Failed to create order via BFF", ex);
+            throw new BusinessException("ORDER_CREATION_FAILED", "Failed to create order");
+        }
+    }
+
 }

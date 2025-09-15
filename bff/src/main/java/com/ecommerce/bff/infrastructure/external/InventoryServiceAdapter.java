@@ -41,7 +41,7 @@ public class InventoryServiceAdapter implements InventoryServicePort {
                 .uri(inventoryServiceBaseUrl + "/api/v1/reservations/order/{orderId}", orderId)
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<InventoryReservationDto>>() {})
-                .timeout(Duration.ofSeconds(5))
+                .timeout(Duration.ofSeconds(30))
                 .block();
         } catch (Exception ex) {
             logger.error("Error fetching reservations for order: {}", orderId, ex);

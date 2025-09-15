@@ -5,6 +5,7 @@ import com.ecommerce.billing.domain.event.PaymentCompletedEvent;
 import com.ecommerce.billing.domain.event.PaymentFailedEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.observation.ObservationRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -21,11 +22,17 @@ public class PaymentEventPublisherAdapter implements PaymentEventPublisherPort {
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
+    private final ObservationRegistry observationRegistry;
 
     public PaymentEventPublisherAdapter(KafkaTemplate<String, String> kafkaTemplate,
-                                       ObjectMapper objectMapper) {
+                                      ObjectMapper objectMapper,
+                                      ObservationRegistry observationRegistry) {
         this.kafkaTemplate = kafkaTemplate;
         this.objectMapper = objectMapper;
+        this.observationRegistry = observationRegistry;
+
+        // Configurar observação no KafkaTemplate
+        this.kafkaTemplate.setObservationEnabled(true);
     }
 
     @Override
