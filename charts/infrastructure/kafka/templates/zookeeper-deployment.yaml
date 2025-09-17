@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kafka.fullname" . }}-zookeeper
+  labels:
+    {{- include "kafka.labels" . | nindent 4 }}
+    app.kubernetes.io/component: zookeeper
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "kafka.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: zookeeper
+  template:
+    metadata:
+      labels:
+        {{- include "kafka.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: zookeeper
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: zookeeper
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+          image: "{{ .Values.zookeeper.image.repository }}:{{ .Values.zookeeper.image.tag }}"
+          imagePullPolicy: {{ .Values.zookeeper.image.pullPolicy }}
+          ports:
+            - name: client
+              containerPort: {{ .Values.zookeeper.config.clientPort }}
+              protocol: TCP
+          env:
+            - name: ZOO_MY_ID
+              value: "1"
+            - name: ZOO_PORT
+              value: "{{ .Values.zookeeper.config.clientPort }}"
+            - name: ZOO_TICK_TIME
+              value: "{{ .Values.zookeeper.config.tickTime }}"
+            - name: ZOO_INIT_LIMIT
+              value: "10"
+            - name: ZOO_SYNC_LIMIT
+              value: "5"
+            - name: ZOO_MAX_CLIENT_CNXNS
+              value: "60"
+            - name: ZOO_AUTOPURGE_SNAPRETAINCOUNT
+              value: "3"
+            - name: ZOO_AUTOPURGE_PURGEINTERVAL
+              value: "12"
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.zookeeper.config.clientPort }}
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.zookeeper.config.clientPort }}
+            initialDelaySeconds: 45
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.zookeeper.resources | nindent 12 }}
+          volumeMounts:
+            - name: zookeeper-storage
+              mountPath: /var/lib/zookeeper/data
+            - name: zookeeper-logs
+              mountPath: /var/lib/zookeeper/log
+      volumes:
+        - name: zookeeper-storage
+          {{- if .Values.zookeeper.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "kafka.fullname" . }}-zookeeper-pvc
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: zookeeper-logs
+          emptyDir: {}

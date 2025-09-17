@@ -1,0 +1,23 @@
+apiVersion: v2
+name: inventory-service
+description: Inventory Service Helm chart for Techbra E-commerce
+type: application
+version: 0.1.0
+appVersion: "0.0.1-SNAPSHOT"
+
+keywords:
+  - ecommerce
+  - microservices
+  - inventory
+  - stock
+  - hexagonal
+
+maintainers:
+  - name: Techbra Team
+    email: tech@techbra.com
+
+home: https://github.com/techbra/ecommerce
+sources:
+  - https://github.com/techbra/ecommerce
+
+dependencies: []

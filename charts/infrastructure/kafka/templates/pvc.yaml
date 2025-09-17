@@ -1,0 +1,37 @@
+{{- if .Values.zookeeper.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "kafka.fullname" . }}-zookeeper-pvc
+  labels:
+    {{- include "kafka.labels" . | nindent 4 }}
+    app.kubernetes.io/component: zookeeper
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.zookeeper.persistence.size | quote }}
+  {{- if .Values.zookeeper.persistence.storageClass }}
+  storageClassName: {{ .Values.zookeeper.persistence.storageClass | quote }}
+  {{- end }}
+---
+{{- end }}
+  {{- if .Values.kafka.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "kafka.fullname" . }}-kafka-pvc
+  labels:
+    {{- include "kafka.labels" . | nindent 4 }}
+    app.kubernetes.io/component: kafka
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.kafka.persistence.size | quote }}
+  {{- if .Values.kafka.persistence.storageClass }}
+  storageClassName: {{ .Values.kafka.persistence.storageClass | quote }}
+  {{- end }}
+  {{- end }}

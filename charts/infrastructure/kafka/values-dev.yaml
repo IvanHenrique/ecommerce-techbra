@@ -1,0 +1,28 @@
+zookeeper:
+  persistence:
+    enabled: false
+    size: 1Gi
+  resources:
+    limits:
+      cpu: 100m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+kafka:
+  persistence:
+    enabled: false
+    size: 2Gi
+  resources:
+    limits:
+      cpu: 300m
+      memory: 512Mi
+    requests:
+      cpu: 150m
+      memory: 256Mi
+  config:
+    heapOpts: "-Xmx256M -Xms256M"
+
+kafkaUi:
+  enabled: true

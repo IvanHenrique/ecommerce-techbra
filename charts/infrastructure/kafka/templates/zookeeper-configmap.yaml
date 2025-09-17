@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kafka.fullname" . }}-zookeeper-config
+  labels:
+    {{- include "kafka.labels" . | nindent 4 }}
+    app.kubernetes.io/component: zookeeper
+data:
+  zoo.cfg: |
+    tickTime={{ .Values.zookeeper.config.tickTime }}
+    initLimit=10
+    syncLimit=5
+    dataDir=/var/lib/zookeeper/data
+    clientPort={{ .Values.zookeeper.config.clientPort }}
+    maxClientCnxns=60
+    autopurge.snapRetainCount=3
+    autopurge.purgeInterval=12
+    4lw.commands.whitelist=*
+  myid: |
+    1

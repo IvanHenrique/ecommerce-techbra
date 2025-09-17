@@ -1,0 +1,34 @@
+# Configurações específicas para desenvolvimento
+
+replicaCount: 1
+
+image:
+  tag: "dev"
+
+app:
+  profile: dev
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+networkPolicy:
+  enabled: false
+
+config:
+  database:
+    url: jdbc:postgresql://localhost:5432/ecommerce_db
+  kafka:
+    bootstrapServers: localhost:9092
+  redis:
+    host: localhost

@@ -1,0 +1,31 @@
+1. Serviço Inventory Service foi instalado com sucesso!
+
+2. Para acessar a aplicação:
+
+   {{- if eq .Values.service.type "ClusterIP" }}
+   Execute o seguinte comando para fazer port-forward:
+
+   kubectl port-forward service/{{ include "inventory-service.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+
+   Acesse: http://127.0.0.1:{{ .Values.service.port }}
+   {{- end }}
+
+3. Health Check endpoints:
+   - Health: http://localhost:{{ .Values.service.port }}/actuator/health
+   - Metrics: http://localhost:{{ .Values.service.port }}/actuator/metrics
+   - Prometheus: http://localhost:{{ .Values.service.port }}/actuator/prometheus
+
+4. Para verificar o status do deployment:
+   kubectl get pods -l "app.kubernetes.io/name={{ include "inventory-service.name" . }}"
+
+5. Para ver os logs:
+   kubectl logs -l "app.kubernetes.io/name={{ include "inventory-service.name" . }}" -f
+
+{{- if .Values.autoscaling.enabled }}
+6. HPA configurado:
+   kubectl get hpa {{ include "inventory-service.fullname" . }}
+{{- end }}
+
+7. Events Kafka processados:
+   - Consome: PaymentCompleted (billing.events)
+   - Produz: InventoryReserved, InventoryReleased (inventory.events)

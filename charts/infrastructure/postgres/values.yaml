@@ -1,0 +1,77 @@
+image:
+  repository: postgres
+  tag: "16-alpine"
+  pullPolicy: IfNotPresent
+
+auth:
+  database: ecommerce_db
+  username: ecommerce_user
+  password: ecommerce_pass
+
+service:
+  type: ClusterIP
+  port: 5432
+
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: "standard"
+  accessModes:
+    - ReadWriteOnce
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+securityContext:
+  runAsUser: 999
+  runAsGroup: 999
+  fsGroup: 999
+
+podSecurityContext:
+  runAsNonRoot: true
+
+# Health checks
+livenessProbe:
+  exec:
+    command:
+      - /bin/sh
+      - -c
+      - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+readinessProbe:
+  exec:
+    command:
+      - /bin/sh
+      - -c
+      - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+initdb:
+  scripts:
+    init.sql: |
+      -- Criar schemas para cada microserviço
+      CREATE SCHEMA IF NOT EXISTS order_service;
+      CREATE SCHEMA IF NOT EXISTS billing_service;
+      CREATE SCHEMA IF NOT EXISTS inventory_service;
+      
+      -- Grants
+      GRANT ALL PRIVILEGES ON SCHEMA order_service TO ecommerce_user;
+      GRANT ALL PRIVILEGES ON SCHEMA billing_service TO ecommerce_user;
+      GRANT ALL PRIVILEGES ON SCHEMA inventory_service TO ecommerce_user;
+      
+      -- Configurações de performance
+      ALTER SYSTEM SET shared_preload_libraries = 'pg_stat_statements';
+      ALTER SYSTEM SET log_statement = 'all';
+      ALTER SYSTEM SET log_min_duration_statement = 1000;

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "postgres.fullname" . }}-init
+  labels:
+    {{- include "postgres.labels" . | nindent 4 }}
+data:
+  init.sql: |
+    -- Configuração minimal para desenvolvimento
+    CREATE SCHEMA IF NOT EXISTS order_service;
+    CREATE SCHEMA IF NOT EXISTS billing_service;
+    CREATE SCHEMA IF NOT EXISTS inventory_service;
+    
+    GRANT ALL PRIVILEGES ON SCHEMA order_service TO ecommerce_user;
+    GRANT ALL PRIVILEGES ON SCHEMA billing_service TO ecommerce_user;
+    GRANT ALL PRIVILEGES ON SCHEMA inventory_service TO ecommerce_user;

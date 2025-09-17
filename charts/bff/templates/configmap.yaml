@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "bff.fullname" . }}
+  labels:
+    {{- include "bff.labels" . | nindent 4 }}
+data:
+  redis.host: {{ .Values.config.redis.host | quote }}
+  redis.port: {{ .Values.config.redis.port | quote }}
+  microservices.orderService: {{ .Values.config.microservices.orderService | quote }}
+  microservices.billingService: {{ .Values.config.microservices.billingService | quote }}
+  microservices.inventoryService: {{ .Values.config.microservices.inventoryService | quote }}
+  webclient.connectionTimeout: {{ .Values.config.webclient.connectionTimeout | quote }}
+  webclient.readTimeout: {{ .Values.config.webclient.readTimeout | quote }}
+  webclient.writeTimeout: {{ .Values.config.webclient.writeTimeout | quote }}

@@ -1,0 +1,113 @@
+# Valores padrão para o BFF
+replicaCount: 2
+
+image:
+  repository: techbra/bff
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 65532
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65532
+
+service:
+  type: ClusterIP
+  port: 8084
+  targetPort: 8084
+
+# BFF precisa de mais recursos por fazer aggregação
+resources:
+  limits:
+    cpu: 750m
+    memory: 768Mi
+  requests:
+    cpu: 375m
+    memory: 384Mi
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 60
+  targetMemoryUtilizationPercentage: 70
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Network Policy
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: techbra-ecommerce
+      ports:
+        - protocol: TCP
+          port: 8084
+
+# Configurações da aplicação
+app:
+  profile: prod
+  port: 8084
+
+# Health checks
+livenessProbe:
+  httpGet:
+    path: /actuator/health/liveness
+    port: 8084
+  initialDelaySeconds: 45
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /actuator/health/readiness
+    port: 8084
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# ConfigMap data
+config:
+  redis:
+    host: redis
+    port: 6379
+  microservices:
+    orderService: http://order-service:8081
+    billingService: http://billing-service:8082
+    inventoryService: http://inventory-service:8083
+  webclient:
+    connectionTimeout: 3000
+    readTimeout: 8000
+    writeTimeout: 8000
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

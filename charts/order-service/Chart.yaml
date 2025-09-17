@@ -1,0 +1,22 @@
+apiVersion: v2
+name: order-service
+description: Order Service Helm chart for Techbra E-commerce
+type: application
+version: 0.1.0
+appVersion: "0.0.1-SNAPSHOT"
+
+keywords:
+  - ecommerce
+  - microservices
+  - order
+  - hexagonal
+
+maintainers:
+  - name: Techbra Team
+    email: tech@techbra.com
+
+home: https://github.com/techbra/ecommerce
+sources:
+  - https://github.com/techbra/ecommerce
+
+dependencies: []

@@ -1,0 +1,23 @@
+persistence:
+  enabled: false  # Usar emptyDir em dev
+  size: 2Gi
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+initdb:
+  scripts:
+    init.sql: |
+      -- Configuração minimal para desenvolvimento
+      CREATE SCHEMA IF NOT EXISTS order_service;
+      CREATE SCHEMA IF NOT EXISTS billing_service;
+      CREATE SCHEMA IF NOT EXISTS inventory_service;
+      
+      GRANT ALL PRIVILEGES ON SCHEMA order_service TO ecommerce_user;
+      GRANT ALL PRIVILEGES ON SCHEMA billing_service TO ecommerce_user;
+      GRANT ALL PRIVILEGES ON SCHEMA inventory_service TO ecommerce_user;

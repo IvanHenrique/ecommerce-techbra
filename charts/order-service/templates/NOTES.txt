@@ -1,0 +1,31 @@
+1. Serviço Order Service foi instalado com sucesso!
+
+2. Para acessar a aplicação:
+
+   {{- if eq .Values.service.type "ClusterIP" }}
+   Execute o seguinte comando para fazer port-forward:
+
+   kubectl port-forward service/{{ include "order-service.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+
+   Acesse: http://127.0.0.1:{{ .Values.service.port }}
+   {{- end }}
+
+3. Health Check endpoints:
+   - Health: http://localhost:{{ .Values.service.port }}/actuator/health
+   - Metrics: http://localhost:{{ .Values.service.port }}/actuator/metrics
+   - Prometheus: http://localhost:{{ .Values.service.port }}/actuator/prometheus
+
+4. API Documentation:
+   - Swagger UI: http://localhost:{{ .Values.service.port }}/swagger-ui.html
+   - OpenAPI: http://localhost:{{ .Values.service.port }}/api-docs
+
+5. Para verificar o status do deployment:
+   kubectl get pods -l "app.kubernetes.io/name={{ include "order-service.name" . }}"
+
+6. Para ver os logs:
+   kubectl logs -l "app.kubernetes.io/name={{ include "order-service.name" . }}" -f
+
+{{- if .Values.autoscaling.enabled }}
+7. HPA configurado:
+   kubectl get hpa {{ include "order-service.fullname" . }}
+{{- end }}

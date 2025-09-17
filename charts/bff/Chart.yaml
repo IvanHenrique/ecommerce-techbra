@@ -1,0 +1,23 @@
+apiVersion: v2
+name: bff
+description: Backend for Frontend Helm chart for Techbra E-commerce
+type: application
+version: 0.1.0
+appVersion: "0.0.1-SNAPSHOT"
+
+keywords:
+  - ecommerce
+  - microservices
+  - bff
+  - backend-for-frontend
+  - aggregation
+
+maintainers:
+  - name: Techbra Team
+    email: tech@techbra.com
+
+home: https://github.com/techbra/ecommerce
+sources:
+  - https://github.com/techbra/ecommerce
+
+dependencies: []

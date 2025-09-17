@@ -1,0 +1,40 @@
+1. Serviço BFF foi instalado com sucesso!
+
+2. Para acessar a aplicação:
+
+   {{- if eq .Values.service.type "ClusterIP" }}
+   Execute o seguinte comando para fazer port-forward:
+
+   kubectl port-forward service/{{ include "bff.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+
+   Acesse: http://127.0.0.1:{{ .Values.service.port }}
+   {{- end }}
+
+3. Health Check endpoints:
+   - Health: http://localhost:{{ .Values.service.port }}/actuator/health
+   - Metrics: http://localhost:{{ .Values.service.port }}/actuator/metrics
+   - Prometheus: http://localhost:{{ .Values.service.port }}/actuator/prometheus
+
+4. API endpoints principais:
+   - Customer Orders: http://localhost:{{ .Values.service.port }}/customer/orders
+   - Swagger UI: http://localhost:{{ .Values.service.port }}/swagger-ui.html
+
+5. Para verificar o status do deployment:
+   kubectl get pods -l "app.kubernetes.io/name={{ include "bff.name" . }}"
+
+6. Para ver os logs:
+   kubectl logs -l "app.kubernetes.io/name={{ include "bff.name" . }}" -f
+
+{{- if .Values.autoscaling.enabled }}
+7. HPA configurado:
+   kubectl get hpa {{ include "bff.fullname" . }}
+{{- end }}
+
+8. Integração com microserviços:
+   - Order Service: {{ .Values.config.microservices.orderService }}
+   - Billing Service: {{ .Values.config.microservices.billingService }}
+   - Inventory Service: {{ .Values.config.microservices.inventoryService }}
+
+9. Cache Redis configurado:
+   - Host: {{ .Values.config.redis.host }}
+   - Resilience patterns ativos (Circuit Breaker, Retry, Timeout)

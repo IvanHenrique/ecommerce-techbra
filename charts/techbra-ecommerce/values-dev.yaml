@@ -1,0 +1,145 @@
+global:
+  environment: dev
+  imageTag: dev
+  namespace: techbra-ecommerce
+
+# Infrastructure - Configurações reduzidas para desenvolvimento
+postgres:
+  enabled: true
+  persistence:
+    enabled: false
+    size: 2Gi
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+redis:
+  enabled: true
+  persistence:
+    enabled: false
+    size: 1Gi
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+kafka:
+  enabled: true
+  zookeeper:
+    persistence:
+      enabled: false
+      size: 1Gi
+    resources:
+      limits:
+        cpu: 100m
+        memory: 256Mi
+      requests:
+        cpu: 50m
+        memory: 128Mi
+  kafka:
+    persistence:
+      enabled: false
+      size: 2Gi
+    resources:
+      limits:
+        cpu: 300m
+        memory: 512Mi
+      requests:
+        cpu: 150m
+        memory: 256Mi
+  kafkaUi:
+    enabled: true
+
+# Microservices - Configurações mínimas
+microservices:
+  orderService:
+    enabled: true
+    replicaCount: 1
+    image:
+      tag: dev
+    resources:
+      limits:
+        cpu: 250m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    autoscaling:
+      enabled: false
+    podDisruptionBudget:
+      enabled: false
+    networkPolicy:
+      enabled: false
+
+  billingService:
+    enabled: true
+    replicaCount: 1
+    image:
+      tag: dev
+    resources:
+      limits:
+        cpu: 250m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    autoscaling:
+      enabled: false
+    podDisruptionBudget:
+      enabled: false
+    networkPolicy:
+      enabled: false
+
+  inventoryService:
+    enabled: true
+    replicaCount: 1
+    image:
+      tag: dev
+    resources:
+      limits:
+        cpu: 250m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    autoscaling:
+      enabled: false
+    podDisruptionBudget:
+      enabled: false
+    networkPolicy:
+      enabled: false
+
+  bff:
+    enabled: true
+    replicaCount: 1
+    image:
+      tag: dev
+    resources:
+      limits:
+        cpu: 300m
+        memory: 384Mi
+      requests:
+        cpu: 150m
+        memory: 192Mi
+    autoscaling:
+      enabled: false
+    podDisruptionBudget:
+      enabled: false
+    networkPolicy:
+      enabled: false
+
+# Monitoring (desabilitado em dev)
+monitoring:
+  prometheus:
+    enabled: false
+  grafana:
+    enabled: false
+  jaeger:
+    enabled: false

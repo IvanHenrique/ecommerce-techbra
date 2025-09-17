@@ -1,0 +1,38 @@
+# Configurações específicas para desenvolvimento
+
+replicaCount: 1
+
+image:
+  tag: "dev"
+
+app:
+  profile: dev
+
+resources:
+  limits:
+    cpu: 300m
+    memory: 384Mi
+  requests:
+    cpu: 150m
+    memory: 192Mi
+
+autoscaling:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+networkPolicy:
+  enabled: false
+
+config:
+  redis:
+    host: localhost
+  microservices:
+    orderService: http://localhost:8081
+    billingService: http://localhost:8082
+    inventoryService: http://localhost:8083
+  webclient:
+    connectionTimeout: 5000
+    readTimeout: 10000
+    writeTimeout: 10000
