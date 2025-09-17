@@ -42,7 +42,7 @@ public class OrderController {
             @ApiResponse(responseCode = "400", description = "Invalid request data"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<?> createOrder(@Valid @RequestBody CreateOrderRequest request) {
+    public ResponseEntity<CreateOrderResponse> createOrder(@Valid @RequestBody CreateOrderRequest request) {
         logger.info("Received request to create order for customer: {}", request.customerId());
 
         var command = new CreateOrderCommand(request.customerId(), request.items());

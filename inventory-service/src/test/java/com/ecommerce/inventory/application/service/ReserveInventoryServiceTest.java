@@ -5,6 +5,8 @@ import com.ecommerce.inventory.application.port.in.ReserveInventoryItemCommand;
 import com.ecommerce.inventory.application.port.out.InventoryEventPublisherPort;
 import com.ecommerce.inventory.application.port.out.InventoryRepositoryPort;
 import com.ecommerce.inventory.domain.model.Inventory;
+import com.ecommerce.inventory.domain.model.InventoryReservation;
+import com.ecommerce.shared.infrastructure.exception.BusinessException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -138,5 +140,204 @@ class ReserveInventoryServiceTest {
 
         verify(inventoryRepository).save(any(Inventory.class)); // Creates inventory with 0 quantity
         verify(eventPublisher, never()).publishInventoryReserved(any());
+    }
+
+    @Test
+    void shouldReturnExistingReservationWhenIdempotencyKeyMatches() {
+        // Given
+        UUID orderId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+        UUID productId = UUID.randomUUID();
+        String idempotencyKey = "test-key-123";
+
+        var itemCommand = new ReserveInventoryItemCommand(
+                productId,
+                "Test Product",
+                2
+        );
+
+        var command = new ReserveInventoryCommand(
+                orderId,
+                customerId,
+                List.of(itemCommand),
+                idempotencyKey
+        );
+
+        // Mock InventoryReservation
+        var existingReservation = mock(InventoryReservation.class);
+        when(existingReservation.getOrderId()).thenReturn(orderId);
+
+        // Mock inventory with existing reservation
+        var inventory = mock(Inventory.class);
+        when(inventory.getReservations()).thenReturn(List.of(existingReservation));
+
+        // Mock repository
+        when(inventoryRepository.findByProductId(productId)).thenReturn(Optional.of(inventory));
+
+        // When
+        var result = reserveInventoryService.execute(command);
+
+        // Then
+        assertTrue(result.isSuccess());
+        assertEquals(orderId, result.getValue().orderId());
+        assertEquals("ALREADY_RESERVED", result.getValue().status());
+
+        verify(inventoryRepository, never()).save(any(Inventory.class));
+        verify(eventPublisher, never()).publishInventoryReserved(any());
+    }
+
+    @Test
+    void shouldFailWhenBusinessExceptionOccurs() {
+        // Given
+        UUID orderId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+        UUID productId = UUID.randomUUID();
+
+        var itemCommand = new ReserveInventoryItemCommand(
+                productId,
+                "Test Product",
+                2
+        );
+
+        var command = new ReserveInventoryCommand(
+                orderId,
+                customerId,
+                List.of(itemCommand),
+                "test-key"
+        );
+
+        var inventory = new Inventory(productId, "Test Product", 10);
+
+        when(inventoryRepository.findByProductId(productId)).thenReturn(Optional.of(inventory));
+        when(inventoryRepository.save(any(Inventory.class)))
+                .thenThrow(new BusinessException("INVENTORY_LOCK_ERROR", "Could not lock inventory"));
+
+        // When
+        var result = reserveInventoryService.execute(command);
+
+        // Then
+        assertTrue(result.isFailure());
+        assertEquals("INVENTORY_LOCK_ERROR", result.getErrorCode());
+        assertEquals("Could not lock inventory", result.getErrorMessage());
+
+        verify(inventoryRepository).save(any(Inventory.class));
+        verify(eventPublisher, never()).publishInventoryReserved(any());
+    }
+
+    @Test
+    void shouldFailWhenUnexpectedExceptionOccurs() {
+        // Given
+        UUID orderId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+        UUID productId = UUID.randomUUID();
+
+        var itemCommand = new ReserveInventoryItemCommand(
+                productId,
+                "Test Product",
+                2
+        );
+
+        var command = new ReserveInventoryCommand(
+                orderId,
+                customerId,
+                List.of(itemCommand),
+                "test-key"
+        );
+
+        when(inventoryRepository.findByProductId(productId))
+                .thenThrow(new RuntimeException("Database connection failed"));
+
+        // When
+        var result = reserveInventoryService.execute(command);
+
+        // Then
+        assertTrue(result.isFailure());
+        assertEquals("INVENTORY_RESERVATION_FAILED", result.getErrorCode());
+        assertEquals("Failed to reserve inventory", result.getErrorMessage());
+
+        verify(inventoryRepository, never()).save(any(Inventory.class));
+        verify(eventPublisher, never()).publishInventoryReserved(any());
+    }
+
+    @Test
+    void shouldFailWhenEventPublishingFails() {
+        // Given
+        UUID orderId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+        UUID productId = UUID.randomUUID();
+
+        var itemCommand = new ReserveInventoryItemCommand(
+                productId,
+                "Test Product",
+                2
+        );
+
+        var command = new ReserveInventoryCommand(
+                orderId,
+                customerId,
+                List.of(itemCommand),
+                "test-key"
+        );
+
+        var inventory = new Inventory(productId, "Test Product", 10);
+
+        when(inventoryRepository.findByProductId(productId)).thenReturn(Optional.of(inventory));
+        when(inventoryRepository.save(any(Inventory.class))).thenReturn(inventory);
+
+        // Event publisher throws exception
+        doThrow(new RuntimeException("Kafka broker unavailable"))
+                .when(eventPublisher).publishInventoryReserved(any());
+
+        // When
+        var result = reserveInventoryService.execute(command);
+
+        // Then
+        assertTrue(result.isFailure());
+        assertEquals("INVENTORY_RESERVATION_FAILED", result.getErrorCode());
+        assertEquals("Failed to reserve inventory", result.getErrorMessage());
+
+        verify(inventoryRepository).save(any(Inventory.class));
+        verify(eventPublisher).publishInventoryReserved(any());
+    }
+
+    @Test
+    void shouldHandleCreateResponseFromExistingReservationsWithEmptyList() {
+        // Given
+        UUID orderId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+        UUID productId = UUID.randomUUID();
+
+        var itemCommand = new ReserveInventoryItemCommand(
+                productId,
+                "Test Product",
+                2
+        );
+
+        var command = new ReserveInventoryCommand(
+                orderId,
+                customerId,
+                List.of(itemCommand),
+                "test-key"
+        );
+
+        // Mock inventory with existing reservation but getReservations returns empty list in createResponseFromExistingReservations
+        var inventory = mock(Inventory.class);
+        var existingReservation = mock(InventoryReservation.class);
+
+        when(inventory.getReservations()).thenReturn(List.of(existingReservation))
+                .thenReturn(List.of()); // Second call in createResponseFromExistingReservations returns empty
+
+        when(existingReservation.getOrderId()).thenReturn(orderId);
+
+        when(inventoryRepository.findByProductId(productId)).thenReturn(Optional.of(inventory));
+
+        // When
+        var result = reserveInventoryService.execute(command);
+
+        // Then
+        assertTrue(result.isSuccess());
+        assertEquals("ALREADY_RESERVED", result.getValue().status());
+        assertEquals("N/A", result.getValue().reservationReference());
+        assertTrue(result.getValue().reservedItems().isEmpty());
     }
 }

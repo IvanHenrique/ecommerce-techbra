@@ -7,6 +7,7 @@ import com.ecommerce.order.application.port.out.OrderRepositoryPort;
 import com.ecommerce.order.domain.model.Order;
 import com.ecommerce.order.domain.model.OrderStatus;
 import com.ecommerce.shared.domain.valueobject.Money;
+import com.ecommerce.shared.infrastructure.exception.BusinessException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -106,5 +107,110 @@ class CreateOrderServiceTest {
 
         verify(orderRepository, never()).save(any(Order.class));
         verify(eventPublisher, never()).publishOrderCreated(any());
+    }
+
+    @Test
+    void shouldFailWhenBusinessExceptionOccurs() {
+        // Given
+        UUID customerId = UUID.randomUUID();
+        var itemCommand = new CreateOrderItemCommand(
+                UUID.randomUUID(),
+                "Test Product",
+                1,
+                new BigDecimal("25.00"),
+                "USD"
+        );
+
+        var command = new CreateOrderCommand(customerId, List.of(itemCommand));
+
+        when(orderRepository.existsByOrderNumber(anyString())).thenReturn(false);
+        when(orderRepository.save(any(Order.class)))
+                .thenThrow(new BusinessException("INVALID_ORDER", "Invalid order data"));
+
+        // When
+        var result = createOrderService.execute(command);
+
+        // Then
+        assertTrue(result.isFailure());
+        assertEquals("INVALID_ORDER", result.getErrorCode());
+        assertEquals("Invalid order data", result.getErrorMessage());
+
+        verify(orderRepository).save(any(Order.class));
+        verify(eventPublisher, never()).publishOrderCreated(any());
+    }
+
+    @Test
+    void shouldFailWhenUnexpectedExceptionOccurs() {
+        // Given
+        UUID customerId = UUID.randomUUID();
+        var itemCommand = new CreateOrderItemCommand(
+                UUID.randomUUID(),
+                "Test Product",
+                1,
+                new BigDecimal("25.00"),
+                "USD"
+        );
+
+        var command = new CreateOrderCommand(customerId, List.of(itemCommand));
+
+        when(orderRepository.existsByOrderNumber(anyString())).thenReturn(false);
+        when(orderRepository.save(any(Order.class)))
+                .thenThrow(new RuntimeException("Database connection failed"));
+
+        // When
+        var result = createOrderService.execute(command);
+
+        // Then
+        assertTrue(result.isFailure());
+        assertEquals("ORDER_CREATION_FAILED", result.getErrorCode());
+        assertEquals("Failed to create order", result.getErrorMessage());
+
+        verify(orderRepository).save(any(Order.class));
+        verify(eventPublisher, never()).publishOrderCreated(any());
+    }
+
+    @Test
+    void shouldFailWhenEventPublishingFails() {
+        // Given
+        UUID customerId = UUID.randomUUID();
+        var itemCommand = new CreateOrderItemCommand(
+                UUID.randomUUID(),
+                "Test Product",
+                1,
+                new BigDecimal("25.00"),
+                "USD"
+        );
+
+        var command = new CreateOrderCommand(customerId, List.of(itemCommand));
+
+        // Mock order after save
+        var totalAmount = mock(Money.class);
+        when(totalAmount.amount()).thenReturn(new BigDecimal("25.00"));
+        when(totalAmount.getCurrencyCode()).thenReturn("USD");
+
+        var savedOrder = mock(Order.class);
+        var orderId = UUID.randomUUID();
+        when(savedOrder.getId()).thenReturn(orderId);
+        when(savedOrder.getOrderNumber()).thenReturn("ORD-123456");
+        when(savedOrder.getCustomerId()).thenReturn(customerId);
+        when(savedOrder.getTotalAmount()).thenReturn(totalAmount);
+
+        when(orderRepository.existsByOrderNumber(anyString())).thenReturn(false);
+        when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
+
+        // Event publisher throws exception
+        doThrow(new RuntimeException("Kafka broker unavailable"))
+                .when(eventPublisher).publishOrderCreated(any());
+
+        // When
+        var result = createOrderService.execute(command);
+
+        // Then
+        assertTrue(result.isFailure());
+        assertEquals("ORDER_CREATION_FAILED", result.getErrorCode());
+        assertEquals("Failed to create order", result.getErrorMessage());
+
+        verify(orderRepository).save(any(Order.class));
+        verify(eventPublisher).publishOrderCreated(any());
     }
 }
