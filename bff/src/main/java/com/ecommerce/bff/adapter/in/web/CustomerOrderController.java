@@ -1,6 +1,8 @@
 package com.ecommerce.bff.adapter.in.web;
 
 import com.ecommerce.bff.application.port.in.*;
+import com.ecommerce.bff.domain.view.CustomerOrderView;
+import com.ecommerce.bff.domain.view.OrderSummaryView;
 import com.ecommerce.shared.infrastructure.exception.BusinessException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -41,7 +44,7 @@ public class CustomerOrderController {
             @ApiResponse(responseCode = "400", description = "Invalid customer ID"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<?> getCustomerOrders(@PathVariable UUID customerId) {
+    public ResponseEntity<List<OrderSummaryView>> getCustomerOrders(@PathVariable UUID customerId) {
         logger.info("Received request to get orders for customer: {}", customerId);
 
         try {
@@ -64,7 +67,7 @@ public class CustomerOrderController {
             @ApiResponse(responseCode = "404", description = "Order not found"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<?> getOrderDetails(@PathVariable UUID orderId) {
+    public ResponseEntity<CustomerOrderView> getOrderDetails(@PathVariable UUID orderId) {
         logger.info("Received request to get details for order: {}", orderId);
 
         try {
@@ -89,7 +92,7 @@ public class CustomerOrderController {
 
     @PostMapping("/orders")
     @Operation(summary = "Create order via BFF", description = "Creates a new order through the BFF")
-    public ResponseEntity<?> createOrder(@Valid @RequestBody CreateOrderRequest request) {
+    public ResponseEntity<CreateOrderResponse> createOrder(@Valid @RequestBody CreateOrderRequest request) {
         logger.info("Received request to create order via BFF for customer: {}", request.customerId());
 
         try {

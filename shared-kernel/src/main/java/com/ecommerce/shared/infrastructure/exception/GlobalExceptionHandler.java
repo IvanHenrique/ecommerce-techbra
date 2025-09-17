@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -90,6 +91,34 @@ public class GlobalExceptionHandler {
         problemDetail.setTitle("Internal Server Error");
         problemDetail.setType(URI.create("https://api.techbra.com/problems/internal-error"));
         problemDetail.setProperty("timestamp", LocalDateTime.now());
+
+        return problemDetail;
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ProblemDetail handleJsonParseException(HttpMessageNotReadableException ex) {
+        logger.warn("JSON parse exception: {}", ex.getMessage());
+
+        // Extrair mensagem mais específica
+        String detail = "Invalid JSON format in request";
+        String rootCause = ex.getRootCause() != null ? ex.getRootCause().getMessage() : ex.getMessage();
+
+        // Verificar se é erro de UUID especificamente
+        if (rootCause != null && rootCause.contains("UUID")) {
+            detail = "Invalid UUID format. Must be in format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";
+        } else if (rootCause != null && rootCause.contains("JSON parse error")) {
+            detail = "Invalid JSON structure or data type";
+        }
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                detail
+        );
+
+        problemDetail.setTitle("JSON Parse Error");
+        problemDetail.setType(URI.create("https://api.techbra.com/problems/json-parse-error"));
+        problemDetail.setProperty("timestamp", LocalDateTime.now());
+        problemDetail.setProperty("originalError", rootCause);
 
         return problemDetail;
     }
