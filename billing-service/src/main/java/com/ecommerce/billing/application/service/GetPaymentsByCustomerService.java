@@ -6,6 +6,7 @@ import com.ecommerce.billing.application.port.in.GetPaymentsByCustomerUseCase;
 import com.ecommerce.billing.application.port.out.PaymentRepositoryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,8 +23,9 @@ public class GetPaymentsByCustomerService implements GetPaymentsByCustomerUseCas
     }
 
     @Override
+    @Cacheable(value = "payment-methods", key = "#query.customerId()")
     public List<GetPaymentResponse> execute(GetPaymentsByCustomerQuery query) {
-        logger.info("Getting payments for customer: {}", query.customerId());
+        logger.info("Getting payments for customer from database: {}", query.customerId());
         
         var payments = paymentRepository.findByCustomerId(query.customerId());
         

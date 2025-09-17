@@ -13,6 +13,8 @@ import com.ecommerce.shared.domain.common.Result;
 import com.ecommerce.shared.infrastructure.exception.BusinessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +36,10 @@ public class ProcessPaymentService implements ProcessPaymentUseCase {
 
     @Override
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "payments", key = "#command.orderId()"),
+        @CacheEvict(value = "payment-methods", key = "#command.customerId()")
+    })
     public Result<ProcessPaymentResponse> execute(ProcessPaymentCommand command) {
         try {
             logger.info("Processing payment for order: {} with idempotency key: {}", 

@@ -6,6 +6,7 @@ import com.ecommerce.inventory.application.port.in.GetReservationsByOrderUseCase
 import com.ecommerce.inventory.application.port.out.InventoryRepositoryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,8 +23,9 @@ public class GetReservationsByOrderService implements GetReservationsByOrderUseC
     }
 
     @Override
+    @Cacheable(value = "stock-reservations", key = "#query.orderId()")
     public List<GetReservationResponse> execute(GetReservationsByOrderQuery query) {
-        logger.info("Getting reservations for order: {}", query.orderId());
+        logger.info("Getting reservations for order from database: {}", query.orderId());
         
         var inventories = inventoryRepository.findAll();
         

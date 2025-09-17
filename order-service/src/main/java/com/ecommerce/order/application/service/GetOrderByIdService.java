@@ -6,6 +6,7 @@ import com.ecommerce.order.application.port.in.GetOrderResponse;
 import com.ecommerce.order.application.port.out.OrderRepositoryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -22,8 +23,9 @@ public class GetOrderByIdService implements GetOrderByIdUseCase {
     }
 
     @Override
+    @Cacheable(value = "orders", key = "#query.orderId()")
     public Optional<GetOrderResponse> execute(GetOrderByIdQuery query) {
-        logger.info("Getting order by ID: {}", query.orderId());
+        logger.info("Getting order by ID from database: {}", query.orderId());
         
         var orderOpt = orderRepository.findById(query.orderId());
         

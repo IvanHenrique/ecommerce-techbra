@@ -6,6 +6,7 @@ import com.ecommerce.billing.application.port.in.GetPaymentResponse;
 import com.ecommerce.billing.application.port.out.PaymentRepositoryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -22,8 +23,9 @@ public class GetPaymentByOrderService implements GetPaymentByOrderUseCase {
     }
 
     @Override
+    @Cacheable(value = "payments", key = "#query.orderId()")
     public Optional<GetPaymentResponse> execute(GetPaymentByOrderQuery query) {
-        logger.info("Getting payment for order: {}", query.orderId());
+        logger.info("Getting payment for order from database: {}", query.orderId());
         
         var paymentOpt = paymentRepository.findByOrderId(query.orderId());
         

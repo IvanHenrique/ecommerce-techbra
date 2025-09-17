@@ -1,9 +1,16 @@
 # URLs dos microserviços - Desenvolvimento
 spring:
+  data:
+    redis:
+      host: localhost  # Nome do service no K8s
+      port: 6379
+      password: redis_password  # Senha configurada no Docker
+      timeout: 2000ms
   cache:
-    cache-names: customer-orders
-    caffeine:
-      spec: expireAfterWrite=60s
+    type: redis
+    redis:
+      time-to-live: 300000  # 5 minutos
+      cache-null-values: false
 
 microservices:
   order-service:

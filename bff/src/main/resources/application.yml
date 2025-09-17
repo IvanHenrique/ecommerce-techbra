@@ -4,6 +4,27 @@ spring:
 
   profiles:
     active: dev
+  
+  # Kafka Configuration for Event Listening
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: bff-cache-invalidation
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+  
+  # Cache Configuration
+  cache:
+    type: redis
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
 
 server:
   port: 8084
@@ -18,10 +39,12 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,circuitbreakers,retries
+        include: health,info,metrics,prometheus,circuitbreakers,retries,caches
   endpoint:
     health:
       show-details: always
+    caches:
+      enabled: true
   health:
     circuitbreakers:
       enabled: true

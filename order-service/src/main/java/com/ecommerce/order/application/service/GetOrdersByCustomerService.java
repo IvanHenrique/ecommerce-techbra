@@ -6,6 +6,7 @@ import com.ecommerce.order.application.port.in.GetOrdersByCustomerUseCase;
 import com.ecommerce.order.application.port.out.OrderRepositoryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,8 +23,9 @@ public class GetOrdersByCustomerService implements GetOrdersByCustomerUseCase {
     }
 
     @Override
+    @Cacheable(value = "customer-orders", key = "#query.customerId()")
     public List<GetOrderResponse> execute(GetOrdersByCustomerQuery query) {
-        logger.info("Getting orders for customer: {}", query.customerId());
+        logger.info("Getting orders for customer from database: {}", query.customerId());
         
         var orders = orderRepository.findByCustomerId(query.customerId());
         

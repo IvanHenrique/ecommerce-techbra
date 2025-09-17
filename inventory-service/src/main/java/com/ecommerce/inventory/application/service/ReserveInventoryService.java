@@ -9,6 +9,8 @@ import com.ecommerce.shared.domain.common.Result;
 import com.ecommerce.shared.infrastructure.exception.BusinessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,11 @@ public class ReserveInventoryService implements ReserveInventoryUseCase {
 
     @Override
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "products", allEntries = true),
+        @CacheEvict(value = "stock-levels", allEntries = true),
+        @CacheEvict(value = "stock-reservations", key = "#command.orderId()")
+    })
     public Result<ReserveInventoryResponse> execute(ReserveInventoryCommand command) {
         try {
             logger.info("Reserving inventory for order: {} with idempotency key: {}", 

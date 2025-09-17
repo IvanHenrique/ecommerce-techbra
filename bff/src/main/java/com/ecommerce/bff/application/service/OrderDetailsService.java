@@ -38,10 +38,10 @@ public class OrderDetailsService implements GetOrderDetailsUseCase {
     }
 
     @Override
-    @Cacheable(value = "order-details", key = "#query.orderId")
+    @Cacheable(value = "order-details-l2", key = "#query.orderId", cacheManager = "redisCacheManager")
     public Optional<CustomerOrderView> execute(GetOrderDetailsQuery query) {
         try {
-            logger.info("Fetching order details for order: {}", query.orderId());
+            logger.info("Fetching order details from database for order: {}", query.orderId());
             
             // Fetch order data
             var orderOpt = orderServicePort.getOrderById(query.orderId());

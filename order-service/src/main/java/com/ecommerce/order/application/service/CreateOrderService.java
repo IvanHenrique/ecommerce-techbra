@@ -11,8 +11,10 @@ import com.ecommerce.order.domain.model.OrderItem;
 import com.ecommerce.shared.domain.common.Result;
 import com.ecommerce.shared.domain.valueobject.Money;
 import com.ecommerce.shared.infrastructure.exception.BusinessException;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +36,8 @@ public class CreateOrderService implements CreateOrderUseCase {
 
     @Override
     @Transactional
+    @Bulkhead(name = "order-creation", type = Bulkhead.Type.SEMAPHORE)
+    @CacheEvict(value = "customer-orders", key = "#command.customerId()")
     public Result<CreateOrderResponse> execute(CreateOrderCommand command) {
         try {
             logger.info("Creating order for customer: {}", command.customerId());
