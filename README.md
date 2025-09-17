@@ -1,10 +1,10 @@
-# Projeto Microserviços - E-commerce Platform (Techbra)
+# E-commerce Techbra - Plataforma de Microserviços
 
 ## Visão Geral
 
-Este projeto implementa uma plataforma de e-commerce baseada em microserviços utilizando arquitetura hexagonal, seguindo as melhores práticas de desenvolvimento com SOLID, DRY e YAGNI.
+Este projeto implementa uma plataforma de e-commerce completa baseada em microserviços utilizando arquitetura hexagonal, seguindo as melhores práticas de desenvolvimento com SOLID, DRY e YAGNI.
 
-A aplicação utiliza **Maven Multi-Module** para gerenciar todos os microserviços em um monorepo, facilitando a manutenção e evolução da arquitetura.
+A aplicação utiliza **Maven Multi-Module** para gerenciar todos os microserviços em um monorepo, facilitando a manutenção e evolução da arquitetura. O projeto está configurado para execução em ambiente Windows com PowerShell.
 
 ## MVP - Fluxo de Negócio Principal
 
@@ -12,22 +12,40 @@ Como MVP para demonstrar todas as funcionalidades arquiteturais, implementaremos
 
 ### Fluxo de Exemplo (Processo de Pedido End-to-End)
 
-1. **Cliente cria Pedido** via BFF → BFF chama **Order Service** (API única)
+1. **Cliente cria Pedido** via BFF → BFF chama **Order Service**
 2. **Order Service** publica evento `OrderCreated` no Kafka
-3. **Billing Service** consome `OrderCreated`, processa pagamento (idempotente) e publica:
+3. **Billing Service** consome `OrderCreated`, processa pagamento e publica:
     - `PaymentCompleted` (sucesso) ou `PaymentFailed` (falha)
 4. **Inventory Service** consome `PaymentCompleted`, reserva estoque e publica `InventoryReserved`
-5. **Saga Pattern** implementado (coreografia) para garantir consistência cross-service
-6. **BFF** agrega view model centrado no cliente (consulta read-model) e expõe para front-end
+5. **TODO**: **Notification Service** consumirá eventos para enviar notificações aos clientes
+6. **Saga Pattern** implementado para garantir consistência cross-service
+7. **BFF** agrega dados de múltiplos serviços e expõe APIs otimizadas para o frontend
 
-### APIs Mínimas por Microserviço
+### APIs Implementadas por Microserviço
 
-Cada microserviço implementa **uma API principal** para demonstrar o fluxo:
+**Order Service** (Porta 8081):
+- `POST /api/orders` - Criação de pedidos
+- `GET /api/orders/{id}` - Consulta de pedido
+- `GET /api/orders` - Listagem de pedidos
 
-- **order-service**: `POST /orders` - Criação de pedidos
-- **billing-service**: `POST /payments` - Processamento via eventos
-- **inventory-service**: `POST /reserve` - Reserva via eventos
-- **bff**: `GET /customer/orders` - View agregada com fallback/cache
+**Billing Service** (Porta 8082):
+- `POST /api/payments` - Processamento de pagamentos
+- `GET /api/payments/{orderId}` - Status do pagamento
+
+**Inventory Service** (Porta 8083):
+- `POST /api/inventory/reserve` - Reserva de estoque
+- `GET /api/inventory/products/{productId}` - Consulta de estoque
+- `PUT /api/inventory/products/{productId}` - Atualização de estoque
+
+**BFF** (Porta 8084):
+- `POST /api/orders` - Criação de pedidos (proxy para order-service)
+- `GET /api/orders/{id}` - Detalhes do pedido com dados agregados
+- `GET /api/customer/orders` - Histórico de pedidos do cliente
+
+**TODO**: **Notification Service** - Será implementado futuramente para:
+- Envio de emails de confirmação
+- Notificações push
+- SMS de status de pedidos
 
 ### Patterns Demonstrados
 
@@ -43,16 +61,17 @@ Cada microserviço implementa **uma API principal** para demonstrar o fluxo:
 
 - **Java 21** com features modernas
 - **Spring Boot 3.5.5**
-- **Maven** para build e gerenciamento de dependências
-- **Apache Kafka** para mensageria
+- **Maven 3.9+** para build e gerenciamento de dependências
+- **Apache Kafka** para mensageria assíncrona
 - **Redis** para cache distribuído
 - **PostgreSQL** para persistência
-- **Avro/JSON** para serialização de mensagens
-- **Docker Compose** para ambiente local
-- **Kubernetes + Helm** para deploy
-- **Terraform** para Infrastructure as Code
+- **JSON** para serialização de mensagens
+- **Docker & Docker Compose** para containerização
+- **Kubernetes (Kind)** para orquestração
+- **Helm Charts** para deploy no Kubernetes
 - **Prometheus + Grafana** para observabilidade
 - **Jaeger** para distributed tracing
+- **Resilience4j** para padrões de resiliência
 
 ## Arquitetura
 
@@ -124,14 +143,33 @@ order-service/
 
 ## Configuração do Ambiente
 
-### Pré-requisitos
+### Pré-requisitos (Windows)
 
-- Java 21
-- Maven 3.9+
-- Docker & Docker Compose
-- Kubernetes (local: minikube/kind)
-- Helm
-- Terraform
+- **Java 21** (OpenJDK ou Oracle JDK)
+- **Maven 3.9+**
+- **Docker Desktop** para Windows
+- **PowerShell 5.1+** (ou PowerShell Core 7+)
+- **Kind** para Kubernetes local
+- **Helm 3.x**
+- **kubectl** para gerenciar Kubernetes
+
+### Instalação dos Pré-requisitos
+
+```powershell
+# Instalar Chocolatey (se não tiver)
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+
+# Instalar ferramentas via Chocolatey
+choco install openjdk21 maven docker-desktop kind helm kubectl
+
+# Verificar instalações
+java -version
+mvn -version
+docker --version
+kind --version
+helm version
+kubectl version --client
+```
 
 ### Estrutura de Arquivos de Configuração
 
@@ -150,15 +188,32 @@ Arquivos de configuração incluídos:
 
 ### Ambiente Local (Docker Compose)
 
-1. Clone o repositório:
-```bash
+1. **Clone o repositório:**
+```powershell
 git clone <repository-url>
-cd projeto-microservicos
+cd ecommerce-techbra
 ```
 
-2. Execute o ambiente local:
-```bash
+2. **Inicie a infraestrutura:**
+```powershell
+# Subir toda a infraestrutura (Kafka, Redis, PostgreSQL, etc.)
 docker-compose up -d
+
+# Verificar se todos os serviços estão rodando
+docker-compose ps
+
+# Ver logs se necessário
+docker-compose logs -f kafka
+```
+
+3. **Aguardar inicialização completa:**
+```powershell
+# Aguardar Kafka estar pronto (pode levar 1-2 minutos)
+docker-compose logs kafka | Select-String "started"
+
+# Verificar saúde dos serviços
+Invoke-RestMethod -Uri "http://localhost:8090" # Kafka UI
+Invoke-RestMethod -Uri "http://localhost:9090" # Prometheus
 ```
 
 Serviços disponíveis:
@@ -173,52 +228,124 @@ Serviços disponíveis:
 
 ### Execução dos Microserviços
 
-```bash
-# Order Service
+**Opção 1: Execução Individual (Desenvolvimento)**
+```powershell
+# Terminal 1 - Order Service
 cd order-service
-mvn spring-boot:run -Dserver.port=8081
+mvn spring-boot:run
 
-# Billing Service
-cd billing-service  
-mvn spring-boot:run -Dserver.port=8082
+# Terminal 2 - Billing Service
+cd billing-service
+mvn spring-boot:run
 
-# Inventory Service
+# Terminal 3 - Inventory Service
 cd inventory-service
-mvn spring-boot:run -Dserver.port=8083
+mvn spring-boot:run
 
-# BFF
+# Terminal 4 - BFF
 cd bff
-mvn spring-boot:run -Dserver.port=8084
+mvn spring-boot:run
+```
+
+**Opção 2: Build e Execução via Docker**
+```powershell
+# Build de todas as imagens
+.\deploy\build-images.ps1
+
+# Ou build individual
+docker build -f order-service/Dockerfile -t techbra/order-service:latest .
+docker build -f billing-service/Dockerfile -t techbra/billing-service:latest .
+docker build -f inventory-service/Dockerfile -t techbra/inventory-service:latest .
+docker build -f bff/Dockerfile -t techbra/bff:latest .
+```
+
+**Opção 3: Deploy no Kubernetes Local**
+```powershell
+# Criar cluster Kind
+kind create cluster --name techbra-ecommerce
+
+# Carregar imagens no Kind
+kind load docker-image techbra/order-service:latest --name techbra-ecommerce
+kind load docker-image techbra/billing-service:latest --name techbra-ecommerce
+kind load docker-image techbra/inventory-service:latest --name techbra-ecommerce
+kind load docker-image techbra/bff:latest --name techbra-ecommerce
+
+# Deploy com Helm
+.\deploy\deploy-local.ps1
 ```
 
 **Nota**: O módulo `shared-kernel` é uma biblioteca compartilhada e não é executável.
 
 ## Deploy no Kubernetes
 
-### 1. Provisionar Infraestrutura (Terraform)
+### 1. Preparação do Ambiente Local
 
-```bash
-cd infra/terraform
-terraform init
-terraform plan
-terraform apply
+```powershell
+# Criar cluster Kind
+kind create cluster --name techbra-ecommerce --config deploy/kind-config.yaml
+
+# Configurar kubectl
+kubectl cluster-info --context kind-techbra-ecommerce
+
+# Criar namespace
+kubectl create namespace techbra-test
+kubectl config set-context --current --namespace=techbra-test
 ```
 
-### 2. Deploy com Helm
+### 2. Deploy da Infraestrutura
 
-```bash
-# Deploy de cada microserviço executável
-helm install order-service charts/order-service -f charts/order-service/values-dev.yaml
-helm install billing-service charts/billing-service -f charts/billing-service/values-dev.yaml
-helm install inventory-service charts/inventory-service -f charts/inventory-service/values-dev.yaml
-helm install bff charts/bff -f charts/bff/values-dev.yaml
+```powershell
+# Deploy do Kafka
+helm install kafka charts/infrastructure/kafka -n techbra-test
+
+# Deploy do PostgreSQL
+helm install postgres charts/infrastructure/postgres -n techbra-test
+
+# Deploy do Redis
+helm install redis charts/infrastructure/redis -n techbra-test
+
+# Aguardar infraestrutura ficar pronta
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=kafka -n techbra-test --timeout=300s
 ```
+
+### 3. Deploy dos Microserviços
+
+```powershell
+# Build e carregamento das imagens
+.\deploy\build-images.ps1
+.\deploy\load-images-kind.ps1
+
+# Deploy com Helm
+helm install order-service charts/order-service -f charts/order-service/values-dev.yaml -n techbra-test
+helm install billing-service charts/billing-service -f charts/billing-service/values-dev.yaml -n techbra-test
+helm install inventory-service charts/inventory-service -f charts/inventory-service/values-dev.yaml -n techbra-test
+helm install bff charts/bff -f charts/bff/values-dev.yaml -n techbra-test
+
+# Verificar deployments
+kubectl get pods -n techbra-test
+kubectl get services -n techbra-test
+```
+
+### 4. Acesso aos Serviços
+
+```powershell
+# Port-forward para acessar localmente
+kubectl port-forward service/bff 8084:8084 -n techbra-test
+kubectl port-forward service/order-service 8081:8081 -n techbra-test
+kubectl port-forward service/kafka-ui 8090:8080 -n techbra-test
+
+# Testar APIs
+Invoke-RestMethod -Uri "http://localhost:8084/actuator/health"
+Invoke-RestMethod -Uri "http://localhost:8081/actuator/health"
+```
+
+**Nota**: Para deploy em produção com Terraform, consulte a documentação específica em `/docs/deployment.md` (TODO: será criada futuramente).
 
 ## Testes
 
-O projeto implementa testes unitários focados nas classes de service/use cases:
+O projeto implementa testes unitários e de integração:
 
-```bash
+```powershell
 # Executar todos os testes do projeto (multi-module)
 mvn test
 
@@ -228,7 +355,13 @@ mvn test
 
 # Executar apenas testes de uma classe específica
 mvn test -Dtest=OrderServiceTest
+
+# Executar testes com relatório de cobertura
+mvn test jacoco:report
 ```
+
+### Estrutura de Testes
+- **Testes Unitários**: Focados em use cases e domain logic dos serviços
 
 ## Observabilidade
 
@@ -266,10 +399,22 @@ Todos os serviços implementam:
 ## Mensageria (Kafka)
 
 ### Tópicos Principais
-- `order.events` - Eventos de pedidos (`OrderCreated`, `OrderUpdated`)
-- `billing.events` - Eventos de pagamento (`PaymentCompleted`, `PaymentFailed`)
-- `inventory.events` - Eventos de estoque (`InventoryReserved`, `InventoryReleased`)
-- `notification.events` - Notificações para cliente
+- `order.events` - Eventos de pedidos (`OrderCreated`, `OrderUpdated`, `OrderCancelled`)
+- `billing.events` - Eventos de pagamento (`PaymentCompleted`, `PaymentFailed`, `PaymentRefunded`)
+- `inventory.events` - Eventos de estoque (`InventoryReserved`, `InventoryReleased`, `StockUpdated`)
+- `notification.events` - **TODO**: Notificações para cliente (será implementado futuramente)
+
+### Monitoramento Kafka
+```powershell
+# Acessar Kafka UI
+Start-Process "http://localhost:8090"
+
+# Verificar tópicos via CLI (dentro do container)
+docker exec -it ecommerce-techbra-kafka-1 kafka-topics --bootstrap-server localhost:9092 --list
+
+# Consumir mensagens para debug
+docker exec -it ecommerce-techbra-kafka-1 kafka-console-consumer --bootstrap-server localhost:9092 --topic order.events --from-beginning
+```
 
 ### Estratégia de Particionamento
 - Chave por ID do usuário/pedido
@@ -332,26 +477,64 @@ cost-center: "engineering"
 - **Runbook**: Procedimentos operacionais
 - **API Documentation**: OpenAPI/Swagger
 
-## Runbook - Principais Cenários
+## Troubleshooting
 
-### Alto Consumer Lag
-1. Verificar health dos consumers: `kubectl get pods -l app=order-service`
-2. Verificar logs: `kubectl logs -f deployment/order-service`
-3. Escalar consumers: `kubectl scale deployment/order-service --replicas=3`
-4. Monitorar recuperação do lag via Grafana
+### Problemas Comuns
 
-### Alta Latência (p95 > threshold)
-1. Verificar tracing no Jaeger para identificar gargalos
-2. Analisar cache hit rate no Grafana (L1 Caffeine + L2 Redis)
-3. Verificar connection pools do PostgreSQL
-4. Ativar circuit breaker se necessário via Resilience4j
+**1. Serviços não conseguem conectar ao Kafka**
+```powershell
+# Verificar se Kafka está rodando
+docker-compose ps kafka
 
-### Falha de Pagamento (Saga Compensation)
-1. Verificar logs do billing-service para errors de pagamento
-2. Confirmar publicação de `PaymentFailed` no Kafka
-3. Verificar compensação da Saga (liberação de estoque)
-4. Ativar fallback no BFF para experiência do usuário
-5. Processar retry manual se necessário via admin endpoint
+# Verificar logs do Kafka
+docker-compose logs kafka
+
+# Testar conectividade
+telnet localhost 9092
+```
+
+**2. Erro de conexão com PostgreSQL**
+```powershell
+# Verificar se PostgreSQL está rodando
+docker-compose ps postgres
+
+# Conectar ao banco para testar
+docker exec -it ecommerce-techbra-postgres-1 psql -U ecommerce_user -d ecommerce_db
+```
+
+**3. Alto Consumer Lag no Kubernetes**
+```powershell
+# Verificar pods
+kubectl get pods -l app.kubernetes.io/name=order-service -n techbra-test
+
+# Verificar logs
+kubectl logs -f deployment/order-service -n techbra-test
+
+# Escalar consumers
+kubectl scale deployment/order-service --replicas=3 -n techbra-test
+```
+
+**4. Falha de Pagamento (Saga)**
+```powershell
+# Verificar logs do billing-service
+kubectl logs -f deployment/billing-service -n techbra-test
+
+# Verificar tópicos Kafka
+kubectl port-forward service/kafka-ui 8090:8080 -n techbra-test
+# Acessar http://localhost:8090
+```
+
+### Scripts de Diagnóstico
+```powershell
+# Health check completo
+.\deploy\health-check.ps1
+
+# Limpeza do ambiente
+.\deploy\cleanup.ps1
+
+# Restart completo
+.\deploy\restart-all.ps1
+```
 
 ## Contribuição
 
@@ -367,6 +550,91 @@ cost-center: "engineering"
 - Adherência aos princípios SOLID, DRY, YAGNI
 - Uso de features modernas do Java 21
 
+## Scripts Úteis
+
+O projeto inclui scripts PowerShell para facilitar operações comuns:
+
+```powershell
+# Build de todas as imagens Docker
+.\deploy\build-images.ps1
+
+# Deploy completo no Kubernetes local
+.\deploy\deploy-local.ps1
+
+# Teste end-to-end do fluxo de pedidos
+.\deploy\test-order-service.ps1
+
+# Health check de todos os serviços
+.\deploy\health-check.ps1
+
+# Limpeza completa do ambiente
+.\deploy\cleanup.ps1
+```
+
+## Runbook - Principais Cenários
+
+### Alto Consumer Lag
+1. Verificar health dos consumers:
+```powershell
+kubectl get pods -l app.kubernetes.io/name=order-service -n techbra-test
+```
+2. Verificar logs:
+```powershell
+kubectl logs -f deployment/order-service -n techbra-test
+```
+3. Escalar consumers:
+```powershell
+kubectl scale deployment/order-service --replicas=3 -n techbra-test
+```
+4. Monitorar recuperação do lag via Grafana
+
+### Alta Latência (p95 > threshold)
+1. Verificar tracing no Jaeger para identificar gargalos
+2. Analisar cache hit rate no Grafana (L1 Caffeine + L2 Redis)
+3. Verificar connection pools do PostgreSQL
+4. Ativar circuit breaker se necessário via Resilience4j
+
+### Falha de Pagamento (Saga Compensation)
+1. Verificar logs do billing-service para errors de pagamento:
+```powershell
+kubectl logs -f deployment/billing-service -n techbra-test
+```
+2. Confirmar publicação de `PaymentFailed` no Kafka via Kafka UI
+3. Verificar compensação da Saga (liberação de estoque)
+4. Ativar fallback no BFF para experiência do usuário
+5. Processar retry manual se necessário via admin endpoint
+
+### Falha de Conectividade com Kafka
+1. Verificar status do cluster Kafka:
+```powershell
+kubectl get pods -l app.kubernetes.io/name=kafka -n techbra-test
+```
+2. Verificar logs do Kafka:
+```powershell
+kubectl logs -f deployment/kafka -n techbra-test
+```
+3. Testar conectividade dos serviços:
+```powershell
+kubectl exec -it deployment/order-service -n techbra-test -- telnet kafka-kafka 9092
+```
+4. Reiniciar serviços se necessário
+
+### Degradação de Performance do PostgreSQL
+1. Verificar métricas de CPU/Memory do PostgreSQL
+2. Analisar slow queries:
+```sql
+SELECT query, mean_time, calls FROM pg_stat_statements ORDER BY mean_time DESC LIMIT 10;
+```
+3. Verificar connection pool leaks
+4. Considerar read replicas se necessário
+
 ## Contato
 
-Para dúvidas ou suporte, consulte a documentação em `/docs` ou abra uma issue no repositório.
+Para dúvidas ou suporte:
+- Consulte a documentação em `/docs`
+- Abra uma issue no repositório
+- Verifique os logs com os scripts de diagnóstico
+
+---
+
+**Nota**: Este projeto está em desenvolvimento ativo. Consulte o roadmap acima para funcionalidades planejadas.
