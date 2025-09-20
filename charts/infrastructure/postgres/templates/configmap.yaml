@@ -6,11 +6,123 @@ metadata:
     {{- include "postgres.labels" . | nindent 4 }}
 data:
   init.sql: |
-    -- Configuração minimal para desenvolvimento
-    CREATE SCHEMA IF NOT EXISTS order_service;
-    CREATE SCHEMA IF NOT EXISTS billing_service;
-    CREATE SCHEMA IF NOT EXISTS inventory_service;
+    -- Criar tabelas no schema público (padrão)
+    CREATE TABLE IF NOT EXISTS orders (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        order_number VARCHAR(255) UNIQUE NOT NULL,
+        customer_id UUID NOT NULL,
+        status VARCHAR(50) NOT NULL,
+        total_amount DECIMAL(19,2),
+        currency VARCHAR(3),
+        order_date TIMESTAMP NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        version BIGINT DEFAULT 0
+    );
     
-    GRANT ALL PRIVILEGES ON SCHEMA order_service TO ecommerce_user;
-    GRANT ALL PRIVILEGES ON SCHEMA billing_service TO ecommerce_user;
-    GRANT ALL PRIVILEGES ON SCHEMA inventory_service TO ecommerce_user;
+    CREATE TABLE IF NOT EXISTS order_items (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        order_id UUID NOT NULL,
+        product_id UUID NOT NULL,
+        product_name VARCHAR(255) NOT NULL,
+        quantity INTEGER NOT NULL,
+        unit_price DECIMAL(19,2),
+        currency VARCHAR(3),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        version BIGINT DEFAULT 0,
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+    );
+    
+    -- Índices para performance
+    CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders(customer_id);
+    CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+    CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+    CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id);
+    
+    -- Tabelas do Billing Service
+    CREATE TABLE IF NOT EXISTS payments (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        order_id UUID NOT NULL,
+        customer_id UUID NOT NULL,
+        payment_reference VARCHAR(255) NOT NULL UNIQUE,
+        amount DECIMAL(19,2) NOT NULL,
+        currency VARCHAR(3) NOT NULL DEFAULT 'BRL',
+        status VARCHAR(50) NOT NULL,
+        payment_method VARCHAR(50) NOT NULL,
+        processed_at TIMESTAMP,
+        failure_reason TEXT,
+        idempotency_key VARCHAR(255) NOT NULL UNIQUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        version BIGINT DEFAULT 0
+    );
+    
+    -- Índices do Billing Service
+    CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
+    CREATE INDEX IF NOT EXISTS idx_payments_customer_id ON payments(customer_id);
+    CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+    CREATE INDEX IF NOT EXISTS idx_payments_idempotency_key ON payments(idempotency_key);
+    
+    -- Tabelas do Inventory Service
+    CREATE TABLE IF NOT EXISTS inventory (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL UNIQUE,
+        product_name VARCHAR(255) NOT NULL,
+        available_quantity INTEGER NOT NULL DEFAULT 0,
+        reserved_quantity INTEGER NOT NULL DEFAULT 0,
+        status VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        version BIGINT DEFAULT 0
+    );
+    
+    CREATE TABLE IF NOT EXISTS inventory_reservations (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        inventory_id UUID NOT NULL,
+        order_id UUID NOT NULL,
+        quantity INTEGER NOT NULL,
+        reservation_reference VARCHAR(255) NOT NULL,
+        status VARCHAR(50) NOT NULL,
+        expires_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        version BIGINT DEFAULT 0,
+        FOREIGN KEY (inventory_id) REFERENCES inventory(id) ON DELETE CASCADE
+    );
+    
+    -- Índices do Inventory Service
+    CREATE INDEX IF NOT EXISTS idx_inventory_product_id ON inventory(product_id);
+    CREATE INDEX IF NOT EXISTS idx_inventory_status ON inventory(status);
+    CREATE INDEX IF NOT EXISTS idx_inventory_reservations_inventory_id ON inventory_reservations(inventory_id);
+    CREATE INDEX IF NOT EXISTS idx_inventory_reservations_order_id ON inventory_reservations(order_id);
+    CREATE INDEX IF NOT EXISTS idx_inventory_reservations_status ON inventory_reservations(status);
+    
+    -- Permissões nas tabelas
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO ecommerce_user;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO ecommerce_user;
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "postgres.fullname" . }}-config
+  labels:
+    {{- include "postgres.labels" . | nindent 4 }}
+data:
+  pg_hba.conf: |
+    # PostgreSQL Client Authentication Configuration File
+    # TYPE  DATABASE        USER            ADDRESS                 METHOD
+    
+    # "local" is for Unix domain socket connections only
+    local   all             all                                     trust
+    # IPv4 local connections:
+    host    all             all             127.0.0.1/32            trust
+    # IPv6 local connections:
+    host    all             all             ::1/128                 trust
+    # Allow connections from Kubernetes pods
+    host    all             all             10.244.0.0/16           trust
+    # Allow replication connections from localhost, by a user with the
+    # replication privilege.
+    local   replication     all                                     trust
+    host    replication     all             127.0.0.1/32            trust
+    host    replication     all             ::1/128                 trust

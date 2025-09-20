@@ -1,32 +1,25 @@
-FROM maven:3.9.5-openjdk-21-slim AS builder
+FROM maven:3.9-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /app
 
+# Copiar todos os módulos para satisfazer o pom.xml pai
 COPY pom.xml .
-COPY ../shared-kernel/pom.xml shared-kernel/
-COPY ../pom.xml ../
+COPY shared-kernel/ shared-kernel/
+COPY order-service/ order-service/
+COPY billing-service/ billing-service/
+COPY inventory-service/ inventory-service/
+COPY bff/ bff/
 
-RUN mvn dependency:go-offline -B
+# Build apenas do billing-service
+RUN mvn clean package -pl billing-service -am -DskipTests
 
-COPY src ./src
-COPY ../shared-kernel/src ./shared-kernel/src
-
-RUN mvn clean package -DskipTests -B
-
-FROM gcr.io/distroless/java21-debian12:nonroot
+# Runtime stage
+FROM openjdk:21-jdk-slim
 
 WORKDIR /app
 
-COPY --from=builder /app/target/billing-service-*.jar app.jar
-
-USER nonroot:nonroot
-
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:8082/actuator/health || exit 1
-
-ENV JAVA_OPTS="-Xmx512m -Xms256m -XX:+UseG1GC -XX:+UseContainerSupport"
-ENV SPRING_PROFILES_ACTIVE=prod
+COPY --from=builder /app/billing-service/target/billing-service-*.jar app.jar
 
 EXPOSE 8082
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:dev}", "-jar", "app.jar"]

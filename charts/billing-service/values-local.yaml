@@ -1,0 +1,19 @@
+# Valores locais para o Billing Service - Recursos reduzidos para desenvolvimento local
+
+# Recursos reduzidos para ambiente local
+resources:
+  limits:
+    cpu: 400m      # Total: 1.6 CPU para 4 serviços
+    memory: 700Mi  # Total: ~3GB para 4 serviços
+  requests:
+    cpu: 150m      # Total: 0.6 CPU para 4 serviços
+    memory: 450Mi  # Total: ~1.8GB para 4 serviços
+
+# Desabilitar autoscaling em ambiente local para economizar recursos
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 1
+
+# Manter apenas 1 réplica
+replicaCount: 1

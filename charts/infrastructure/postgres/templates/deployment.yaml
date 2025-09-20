@@ -48,6 +48,9 @@ spec:
               mountPath: /var/lib/postgresql/data
             - name: init-scripts
               mountPath: /docker-entrypoint-initdb.d
+            - name: postgres-config
+              mountPath: /etc/postgresql/pg_hba.conf
+              subPath: pg_hba.conf
       volumes:
         - name: postgres-storage
           {{- if .Values.persistence.enabled }}
@@ -59,3 +62,6 @@ spec:
         - name: init-scripts
           configMap:
             name: {{ include "postgres.fullname" . }}-init
+        - name: postgres-config
+          configMap:
+            name: {{ include "postgres.fullname" . }}-config

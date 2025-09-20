@@ -7,18 +7,37 @@ spring:
   
   # Kafka Configuration for Event Listening
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka-kafka:9092}
     consumer:
       group-id: bff-cache-invalidation
       auto-offset-reset: latest
+      enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:
         spring.json.trusted.packages: "*"
+        max.poll.records: 500
+        fetch.min.bytes: 1
+    listener:
+      concurrency: 3
+      ack-mode: manual_immediate
   
   # Cache Configuration
   cache:
     type: redis
+
+  # Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
 
   jackson:
     serialization:
@@ -39,7 +58,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,circuitbreakers,retries,caches
+        include: health,info,metrics,prometheus,circuitbreakers,retries,caches,resilience4j
   endpoint:
     health:
       show-details: always
@@ -54,6 +73,83 @@ management:
     export:
       prometheus:
         enabled: true
+    tags:
+      application: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+# Resilience4j Configuration
+resilience4j:
+  bulkhead:
+    instances:
+      order-service:
+        max-concurrent-calls: 25
+        max-wait-duration: 0
+      billing-service:
+        max-concurrent-calls: 25
+        max-wait-duration: 0
+      inventory-service:
+        max-concurrent-calls: 25
+        max-wait-duration: 0
+  
+  ratelimiter:
+    instances:
+      order-service:
+        limit-for-period: 10
+        limit-refresh-period: 1s
+        timeout-duration: 0
+      billing-service:
+        limit-for-period: 10
+        limit-refresh-period: 1s
+        timeout-duration: 0
+      inventory-service:
+        limit-for-period: 10
+        limit-refresh-period: 1s
+        timeout-duration: 0
+  
+  circuitbreaker:
+    instances:
+      order-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+      billing-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+      inventory-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+  
+  retry:
+    instances:
+      order-service:
+        max-attempts: 3
+        wait-duration: 1000ms
+      billing-service:
+        max-attempts: 3
+        wait-duration: 1000ms
+      inventory-service:
+        max-attempts: 3
+        wait-duration: 1000ms
 
 springdoc:
   api-docs:

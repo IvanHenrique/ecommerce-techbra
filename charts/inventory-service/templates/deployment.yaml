@@ -57,10 +57,7 @@ spec:
                   name: {{ include "inventory-service.fullname" . }}-secret
                   key: database.password
             - name: KAFKA_BOOTSTRAP_SERVERS
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "inventory-service.fullname" . }}
-                  key: kafka.bootstrapServers
+              value: "kafka-kafka:9092"
             - name: REDIS_HOST
               valueFrom:
                 configMapKeyRef:

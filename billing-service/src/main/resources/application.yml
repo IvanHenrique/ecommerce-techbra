@@ -14,13 +14,7 @@ spring:
         format_sql: true
 
   kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: billing-service
-      auto-offset-reset: earliest
-      enable-auto-commit: false
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka-kafka:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -28,6 +22,17 @@ spring:
       retries: 3
       properties:
         enable.idempotence: true
+    consumer:
+      group-id: billing-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        max.poll.records: 100
+        fetch.min.bytes: 1024
+    listener:
+      concurrency: 3
+      ack-mode: batch
 
 server:
   port: 8082
@@ -36,14 +41,81 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics,prometheus,resilience4j
   endpoint:
     health:
       show-details: always
+    resilience4j:
+      enabled: true
   metrics:
     export:
       prometheus:
         enabled: true
+    tags:
+      application: billing-service
+  health:
+    circuitbreakers:
+      enabled: true
+    ratelimiters:
+      enabled: true
+
+# Resilience4j Configuration
+resilience4j:
+  bulkhead:
+    instances:
+      payment-processing:
+        max-concurrent-calls: 10
+        max-wait-duration: 5s
+      payment-query:
+        max-concurrent-calls: 20
+        max-wait-duration: 3s
+    
+  ratelimiter:
+    instances:
+      payment-processing:
+        limit-for-period: 50
+        limit-refresh-period: 1m
+        timeout-duration: 5s
+      payment-query:
+        limit-for-period: 100
+        limit-refresh-period: 1m
+        timeout-duration: 3s
+
+  circuitbreaker:
+    instances:
+      payment-processing:
+        failure-rate-threshold: 50
+        minimum-number-of-calls: 10
+        sliding-window-size: 20
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+      payment-query:
+        failure-rate-threshold: 60
+        minimum-number-of-calls: 5
+        sliding-window-size: 10
+        wait-duration-in-open-state: 15s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+
+  retry:
+    instances:
+      payment-processing:
+        max-attempts: 3
+        wait-duration: 1s
+        exponential-backoff-multiplier: 2
+        randomization-factor: 0.5
+        retry-exceptions:
+          - java.lang.RuntimeException
+          - java.util.concurrent.TimeoutException
+      payment-query:
+        max-attempts: 2
+        wait-duration: 500ms
+        exponential-backoff-multiplier: 1.5
+        randomization-factor: 0.3
+        retry-exceptions:
+          - java.lang.RuntimeException
+          - java.util.concurrent.TimeoutException
 
 springdoc:
   api-docs:

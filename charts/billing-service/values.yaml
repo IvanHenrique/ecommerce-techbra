@@ -36,11 +36,11 @@ service:
 
 resources:
   limits:
-    cpu: 500m
-    memory: 512Mi
+    cpu: 2000m
+    memory: 2Gi
   requests:
-    cpu: 250m
-    memory: 256Mi
+    cpu: 1000m
+    memory: 1Gi
 
 # Horizontal Pod Autoscaler
 autoscaling:
@@ -77,18 +77,18 @@ livenessProbe:
   httpGet:
     path: /actuator/health/liveness
     port: 8082
-  initialDelaySeconds: 45
-  periodSeconds: 20
-  timeoutSeconds: 5
+  initialDelaySeconds: 180
+  periodSeconds: 30
+  timeoutSeconds: 10
   failureThreshold: 3
 
 readinessProbe:
   httpGet:
     path: /actuator/health/readiness
     port: 8082
-  initialDelaySeconds: 30
-  periodSeconds: 10
-  timeoutSeconds: 3
+  initialDelaySeconds: 120
+  periodSeconds: 30
+  timeoutSeconds: 10
   failureThreshold: 3
 
 # ConfigMap data
@@ -97,7 +97,7 @@ config:
     url: jdbc:postgresql://postgres:5432/ecommerce_db
     username: ecommerce_user
   kafka:
-    bootstrapServers: kafka:29092
+    bootstrapServers: kafka-kafka:9092
   redis:
     host: redis
     port: 6379

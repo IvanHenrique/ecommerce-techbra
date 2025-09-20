@@ -12,10 +12,6 @@ spec:
       targetPort: kafka
       protocol: TCP
       name: kafka
-    - port: {{ .Values.kafka.service.internalPort }}
-      targetPort: kafka-internal
-      protocol: TCP
-      name: kafka-internal
   selector:
     {{- include "kafka.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: kafka

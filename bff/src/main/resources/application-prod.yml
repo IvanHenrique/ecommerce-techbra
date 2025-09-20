@@ -1,4 +1,7 @@
 spring:
+  # Datasource configuration - BFF não usa banco de dados
+  
+  # Redis Configuration
   data:
     redis:
       host: ${REDIS_HOST:redis}
@@ -17,6 +20,23 @@ spring:
       time-to-live: 600000 # 10 minutos em prod
       cache-null-values: false
 
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka-kafka:9092}
+    consumer:
+      group-id: bff-cache-invalidation
+      auto-offset-reset: latest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        max.poll.records: 500
+        fetch.min.bytes: 1
+    listener:
+      concurrency: 3
+      ack-mode: manual_immediate
+
 # URLs dos microserviços - Produção
 microservices:
   order-service:
@@ -34,6 +54,33 @@ webclient:
 
 # Configurações de produção do Resilience4j
 resilience4j:
+  bulkhead:
+    instances:
+      order-service:
+        max-concurrent-calls: 50
+        max-wait-duration: 0
+      billing-service:
+        max-concurrent-calls: 50
+        max-wait-duration: 0
+      inventory-service:
+        max-concurrent-calls: 50
+        max-wait-duration: 0
+
+  ratelimiter:
+    instances:
+      order-service:
+        limit-for-period: 20
+        limit-refresh-period: 1s
+        timeout-duration: 0
+      billing-service:
+        limit-for-period: 20
+        limit-refresh-period: 1s
+        timeout-duration: 0
+      inventory-service:
+        limit-for-period: 20
+        limit-refresh-period: 1s
+        timeout-duration: 0
+
   circuitbreaker:
     instances:
       order-service:

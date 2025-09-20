@@ -36,11 +36,11 @@ service:
 
 resources:
   limits:
-    cpu: 500m
-    memory: 512Mi
+    cpu: 2000m
+    memory: 2Gi
   requests:
-    cpu: 250m
-    memory: 256Mi
+    cpu: 1000m
+    memory: 1Gi
 
 # Horizontal Pod Autoscaler
 autoscaling:
@@ -77,19 +77,19 @@ livenessProbe:
   httpGet:
     path: /actuator/health/liveness
     port: 8081
-  initialDelaySeconds: 400
+  initialDelaySeconds: 180
   periodSeconds: 30
   timeoutSeconds: 10
-  failureThreshold: 5
+  failureThreshold: 3
 
 readinessProbe:
   httpGet:
     path: /actuator/health/readiness
     port: 8081
-  initialDelaySeconds: 400
-  periodSeconds: 20
+  initialDelaySeconds: 120
+  periodSeconds: 30
   timeoutSeconds: 10
-  failureThreshold: 5
+  failureThreshold: 3
 
 # ConfigMap data
 config:

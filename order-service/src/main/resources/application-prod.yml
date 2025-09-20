@@ -11,6 +11,21 @@ spring:
       idle-timeout: 600000
       max-lifetime: 1800000
 
+  jpa:
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate  # Para produção - não altera estrutura
+    show-sql: false  # Desabilitado em produção
+    properties:
+      hibernate:
+        format_sql: false
+        show_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          lob:
+            non_contextual_creation: true
+
   data:
     redis:
       host: ${REDIS_HOST:redis}
